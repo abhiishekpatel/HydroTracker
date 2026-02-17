@@ -1,0 +1,54 @@
+package com.example.hydrotracker
+
+import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import com.example.hydrotracker.data.local.HydroDatabase
+import com.example.hydrotracker.data.local.SettingsDataStore
+import com.example.hydrotracker.data.repository.WaterRepository
+
+class HydroTrackApp : Application() {
+
+    lateinit var repository: WaterRepository
+        private set
+
+    lateinit var settingsDataStore: SettingsDataStore
+        private set
+
+    override fun onCreate() {
+        super.onCreate()
+
+        val database = HydroDatabase.getDatabase(this)
+        settingsDataStore = SettingsDataStore(this)
+        repository = WaterRepository(database.waterEntryDao(), settingsDataStore)
+
+        createNotificationChannels()
+    }
+
+    private fun createNotificationChannels() {
+        val reminderChannel = NotificationChannel(
+            REMINDER_CHANNEL_ID,
+            "Hydration Reminders",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Reminders to drink water throughout the day"
+        }
+
+        val achievementChannel = NotificationChannel(
+            ACHIEVEMENT_CHANNEL_ID,
+            "Achievements",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Goal completion and streak notifications"
+        }
+
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(reminderChannel)
+        manager.createNotificationChannel(achievementChannel)
+    }
+
+    companion object {
+        const val REMINDER_CHANNEL_ID = "hydro_reminders"
+        const val ACHIEVEMENT_CHANNEL_ID = "hydro_achievements"
+    }
+}
