@@ -1,9 +1,5 @@
 package com.example.hydrotracker.ui.screens.dashboard
 
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -41,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +55,8 @@ import com.example.hydrotracker.ui.components.ConfettiEffect
 import com.example.hydrotracker.ui.components.QuickAddButtons
 import com.example.hydrotracker.ui.components.WaterProgressRing
 import com.example.hydrotracker.ui.components.WaveBackground
+import com.example.hydrotracker.ui.HapticType
+import com.example.hydrotracker.ui.performHaptic
 import com.example.hydrotracker.ui.theme.Amber500
 import com.example.hydrotracker.ui.theme.Blue500
 import com.example.hydrotracker.ui.theme.Green500
@@ -71,6 +70,13 @@ fun DashboardScreen(
     var showResetDialog by remember { mutableStateOf(false) }
     var showCustomDialog by remember { mutableStateOf(false) }
     var customAmount by remember { mutableStateOf("") }
+
+    // SUCCESS pulse when daily goal is first reached
+    LaunchedEffect(uiState.showConfetti) {
+        if (uiState.showConfetti) {
+            performHaptic(context, HapticType.SUCCESS, uiState.hapticEnabled)
+        }
+    }
 
     val progress = (uiState.currentIntakeMl.toFloat() / uiState.dailyGoalMl).coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(
@@ -133,14 +139,20 @@ fun DashboardScreen(
                 }
 
                 Row {
-                    IconButton(onClick = { viewModel.undoLastEntry() }) {
+                    IconButton(onClick = {
+                        performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
+                        viewModel.undoLastEntry()
+                    }) {
                         Icon(
                             Icons.AutoMirrored.Filled.Undo,
                             contentDescription = "Undo last entry",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = { showResetDialog = true }) {
+                    IconButton(onClick = {
+                        performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
+                        showResetDialog = true
+                    }) {
                         Icon(
                             Icons.Default.Refresh,
                             contentDescription = "Reset day",
@@ -270,12 +282,13 @@ fun DashboardScreen(
             QuickAddButtons(
                 amounts = uiState.quickAddAmounts,
                 onAddWater = { amount ->
-                    if (uiState.hapticEnabled) {
-                        performHaptic(context)
-                    }
+                    performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
                     viewModel.addWater(amount)
                 },
-                onCustomAdd = { showCustomDialog = true }
+                onCustomAdd = {
+                    performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
+                    showCustomDialog = true
+                }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -349,6 +362,7 @@ fun DashboardScreen(
                 text = { Text("Are you sure you want to reset all water intake entries for today? This cannot be undone.") },
                 confirmButton = {
                     TextButton(onClick = {
+                        performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
                         viewModel.resetDay()
                         showResetDialog = false
                     }) {
@@ -356,7 +370,10 @@ fun DashboardScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showResetDialog = false }) {
+                    TextButton(onClick = {
+                        performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
+                        showResetDialog = false
+                    }) {
                         Text("Cancel")
                     }
                 }
@@ -392,9 +409,7 @@ fun DashboardScreen(
                     TextButton(onClick = {
                         val amount = customAmount.toIntOrNull()
                         if (amount != null && amount > 0) {
-                            if (uiState.hapticEnabled) {
-                                performHaptic(context)
-                            }
+                            performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
                             viewModel.addWater(amount)
                         }
                         showCustomDialog = false
@@ -405,6 +420,7 @@ fun DashboardScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = {
+                        performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
                         showCustomDialog = false
                         customAmount = ""
                     }) {
@@ -432,15 +448,3 @@ private fun formatTime(timestamp: Long): String {
     return sdf.format(java.util.Date(timestamp))
 }
 
-private fun performHaptic(context: android.content.Context) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val vibratorManager = context.getSystemService(android.content.Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-        vibratorManager.defaultVibrator.vibrate(
-            VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)
-        )
-    } else {
-        @Suppress("DEPRECATION")
-        val vibrator = context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as Vibrator
-        vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
-    }
-}

@@ -32,6 +32,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.hydrotracker.HydroTrackApp
+import com.example.hydrotracker.ui.HapticType
+import com.example.hydrotracker.ui.performHaptic
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +62,10 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val hapticEnabled by (context.applicationContext as HydroTrackApp)
+        .settingsDataStore.hapticEnabled
+        .collectAsStateWithLifecycle(initialValue = true)
 
     Column(
         modifier = Modifier
@@ -139,7 +148,10 @@ fun HistoryScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { viewModel.previousMonth() }) {
+                    IconButton(onClick = {
+                        performHaptic(context, HapticType.STRONG, hapticEnabled)
+                        viewModel.previousMonth()
+                    }) {
                         Icon(Icons.Default.ChevronLeft, contentDescription = "Previous month")
                     }
                     Text(
@@ -147,7 +159,10 @@ fun HistoryScreen(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
-                    IconButton(onClick = { viewModel.nextMonth() }) {
+                    IconButton(onClick = {
+                        performHaptic(context, HapticType.STRONG, hapticEnabled)
+                        viewModel.nextMonth()
+                    }) {
                         Icon(Icons.Default.ChevronRight, contentDescription = "Next month")
                     }
                 }

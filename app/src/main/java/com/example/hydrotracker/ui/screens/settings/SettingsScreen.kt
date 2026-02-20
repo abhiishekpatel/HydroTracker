@@ -34,6 +34,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.example.hydrotracker.ui.HapticType
+import com.example.hydrotracker.ui.performHaptic
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,6 +48,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -87,6 +91,7 @@ fun SettingsScreen(
                         value = sliderValue,
                         onValueChange = { sliderValue = it },
                         onValueChangeFinished = {
+                            performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
                             viewModel.setDailyGoal(
                                 (sliderValue / 250).toInt() * 250
                             )
@@ -135,7 +140,10 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = uiState.remindersEnabled,
-                            onCheckedChange = { viewModel.setRemindersEnabled(it) }
+                            onCheckedChange = {
+                                performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
+                                viewModel.setRemindersEnabled(it)
+                            }
                         )
                     }
 
@@ -165,6 +173,7 @@ fun SettingsScreen(
                             value = intervalSlider,
                             onValueChange = { intervalSlider = it },
                             onValueChangeFinished = {
+                                performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
                                 viewModel.setReminderInterval(intervalSlider.toInt())
                             },
                             valueRange = 30f..120f,
@@ -221,7 +230,11 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = uiState.hapticEnabled,
-                            onCheckedChange = { viewModel.setHapticEnabled(it) }
+                            onCheckedChange = { newValue ->
+                                // Fire haptic when enabling so user feels confirmation it works
+                                if (newValue) performHaptic(context, HapticType.STRONG, true)
+                                viewModel.setHapticEnabled(newValue)
+                            }
                         )
                     }
 
@@ -238,7 +251,10 @@ fun SettingsScreen(
                         )
                         ThemeSelector(
                             selected = uiState.darkMode,
-                            onSelect = { viewModel.setDarkMode(it) }
+                            onSelect = {
+                                performHaptic(context, HapticType.STRONG, uiState.hapticEnabled)
+                                viewModel.setDarkMode(it)
+                            }
                         )
                     }
                 }

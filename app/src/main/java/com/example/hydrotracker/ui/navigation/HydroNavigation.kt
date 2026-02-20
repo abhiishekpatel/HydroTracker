@@ -1,10 +1,5 @@
 package com.example.hydrotracker.ui.navigation
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
@@ -27,6 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.hydrotracker.HydroTrackApp
+import com.example.hydrotracker.ui.HapticType
+import com.example.hydrotracker.ui.performHaptic
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -64,6 +64,10 @@ fun HydroNavigation() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val context = LocalContext.current
+    val hapticEnabled by (context.applicationContext as HydroTrackApp)
+        .settingsDataStore.hapticEnabled
+        .collectAsStateWithLifecycle(initialValue = true)
 
     Scaffold(
         bottomBar = {
@@ -89,6 +93,7 @@ fun HydroNavigation() {
                         },
                         selected = selected,
                         onClick = {
+                            performHaptic(context, HapticType.STRONG, hapticEnabled)
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true

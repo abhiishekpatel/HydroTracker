@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hydrotracker.HydroTrackApp
+import com.example.hydrotracker.notification.ReminderWorker
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -66,11 +68,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setReminderInterval(min: Int) {
-        viewModelScope.launch { settings.setReminderIntervalMin(min) }
+        viewModelScope.launch {
+            settings.setReminderIntervalMin(min)
+            if (settings.remindersEnabled.first()) {
+                ReminderWorker.schedule(app, min)
+            }
+        }
     }
 
     fun setRemindersEnabled(enabled: Boolean) {
-        viewModelScope.launch { settings.setRemindersEnabled(enabled) }
+        viewModelScope.launch {
+            settings.setRemindersEnabled(enabled)
+            if (enabled) {
+                ReminderWorker.schedule(app, settings.reminderIntervalMin.first())
+            } else {
+                ReminderWorker.cancel(app)
+            }
+        }
     }
 
     fun setHapticEnabled(enabled: Boolean) {

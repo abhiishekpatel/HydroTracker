@@ -39,6 +39,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.hydrotracker.HydroTrackApp
+import com.example.hydrotracker.ui.HapticType
+import com.example.hydrotracker.ui.performHaptic
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -53,6 +58,10 @@ fun OnboardingScreen(
 ) {
     var currentPage by remember { mutableIntStateOf(0) }
     var goalMl by remember { mutableFloatStateOf(4000f) }
+    val context = LocalContext.current
+    val hapticEnabled by (context.applicationContext as HydroTrackApp)
+        .settingsDataStore.hapticEnabled
+        .collectAsStateWithLifecycle(initialValue = true)
 
     Column(
         modifier = Modifier
@@ -102,7 +111,8 @@ fun OnboardingScreen(
                 )
                 1 -> OnboardingGoalPage(
                     goalMl = goalMl,
-                    onGoalChange = { goalMl = it }
+                    onGoalChange = { goalMl = it },
+                    onGoalChangeFinished = { performHaptic(context, HapticType.STRONG, hapticEnabled) }
                 )
                 2 -> OnboardingPage(
                     icon = Icons.Default.Notifications,
@@ -123,7 +133,10 @@ fun OnboardingScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (currentPage > 0) {
-                TextButton(onClick = { currentPage-- }) {
+                TextButton(onClick = {
+                    performHaptic(context, HapticType.STRONG, hapticEnabled)
+                    currentPage--
+                }) {
                     Text("Back")
                 }
             } else {
@@ -133,8 +146,10 @@ fun OnboardingScreen(
             Button(
                 onClick = {
                     if (currentPage < 2) {
+                        performHaptic(context, HapticType.STRONG, hapticEnabled)
                         currentPage++
                     } else {
+                        performHaptic(context, HapticType.SUCCESS, hapticEnabled)
                         onComplete((goalMl / 250).toInt() * 250)
                     }
                 },
@@ -204,7 +219,8 @@ private fun OnboardingPage(
 @Composable
 private fun OnboardingGoalPage(
     goalMl: Float,
-    onGoalChange: (Float) -> Unit
+    onGoalChange: (Float) -> Unit,
+    onGoalChangeFinished: () -> Unit = {}
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -257,6 +273,7 @@ private fun OnboardingGoalPage(
         Slider(
             value = goalMl,
             onValueChange = onGoalChange,
+            onValueChangeFinished = onGoalChangeFinished,
             valueRange = 1000f..8000f,
             steps = 27,
             colors = SliderDefaults.colors(

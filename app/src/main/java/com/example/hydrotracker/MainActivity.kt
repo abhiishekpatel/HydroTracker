@@ -20,7 +20,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.example.hydrotracker.notification.ReminderWorker
+import com.example.hydrotracker.ui.HapticType
 import com.example.hydrotracker.ui.navigation.HydroNavigation
+import com.example.hydrotracker.ui.performHaptic
 import com.example.hydrotracker.ui.screens.onboarding.OnboardingScreen
 import com.example.hydrotracker.ui.theme.HydroTrackerTheme
 import kotlinx.coroutines.flow.first
@@ -56,6 +58,10 @@ class MainActivity : ComponentActivity() {
         if (remindersEnabled) {
             ReminderWorker.schedule(this, interval)
         }
+
+        // Launch haptic — strong pulse when the app opens
+        val hapticOn = runBlocking { settings.hapticEnabled.first() }
+        performHaptic(this, HapticType.STRONG, hapticOn)
 
         setContent {
             val darkMode by settings.darkMode.collectAsState(initial = "system")
