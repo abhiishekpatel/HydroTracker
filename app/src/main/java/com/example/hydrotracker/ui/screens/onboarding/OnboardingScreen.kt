@@ -50,7 +50,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.hydrotracker.ui.theme.Blue400
 import com.example.hydrotracker.ui.theme.Blue500
+import com.example.hydrotracker.ui.theme.Cyan400
 
 @Composable
 fun OnboardingScreen(
@@ -109,11 +111,14 @@ fun OnboardingScreen(
                     title = "Welcome to HydroTrack",
                     description = "Your dedicated hydration companion designed for athletes and creatine users who need to hit higher water intake targets."
                 )
+
                 1 -> OnboardingGoalPage(
                     goalMl = goalMl,
                     onGoalChange = { goalMl = it },
-                    onGoalChangeFinished = { performHaptic(context, HapticType.STRONG, hapticEnabled) }
+                    // CLICK haptic — slider released
+                    onGoalChangeFinished = { performHaptic(context, HapticType.CLICK, hapticEnabled) }
                 )
+
                 2 -> OnboardingPage(
                     icon = Icons.Default.Notifications,
                     title = "Stay On Track",
@@ -134,10 +139,11 @@ fun OnboardingScreen(
         ) {
             if (currentPage > 0) {
                 TextButton(onClick = {
-                    performHaptic(context, HapticType.STRONG, hapticEnabled)
+                    // TICK haptic — back navigation (lightweight)
+                    performHaptic(context, HapticType.TICK, hapticEnabled)
                     currentPage--
                 }) {
-                    Text("Back")
+                    Text("Back", fontWeight = FontWeight.Medium)
                 }
             } else {
                 Spacer(modifier = Modifier.width(1.dp))
@@ -146,24 +152,27 @@ fun OnboardingScreen(
             Button(
                 onClick = {
                     if (currentPage < 2) {
-                        performHaptic(context, HapticType.STRONG, hapticEnabled)
+                        // CLICK haptic — advancing a step
+                        performHaptic(context, HapticType.CLICK, hapticEnabled)
                         currentPage++
                     } else {
+                        // SUCCESS haptic — onboarding complete 🎉
                         performHaptic(context, HapticType.SUCCESS, hapticEnabled)
                         onComplete((goalMl / 250).toInt() * 250)
                     }
                 },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),
-                modifier = Modifier.height(52.dp)
+                modifier = Modifier.height(54.dp)
             ) {
                 Text(
                     text = if (currentPage < 2) "Next" else "Get Started",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.3).sp,
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
         }
@@ -180,17 +189,34 @@ private fun OnboardingPage(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(horizontal = 16.dp)
     ) {
+        // Icon container — gradient-filled rounded square
         Box(
             modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .size(96.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f)
+                        )
+                    )
+                )
+                .then(
+                    Modifier.then(
+                        androidx.compose.foundation.border(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                            RoundedCornerShape(28.dp)
+                        )
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 icon,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(44.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
         }
@@ -201,10 +227,11 @@ private fun OnboardingPage(
             text = title,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            letterSpacing = (-0.5).sp
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Text(
             text = description,
@@ -226,18 +253,35 @@ private fun OnboardingGoalPage(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(horizontal = 16.dp)
     ) {
+        // Icon container — gradient-filled rounded square
         Box(
             modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .size(96.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        listOf(
+                            Blue500.copy(alpha = 0.22f),
+                            Cyan400.copy(alpha = 0.14f)
+                        )
+                    )
+                )
+                .then(
+                    Modifier.then(
+                        androidx.compose.foundation.border(
+                            1.dp,
+                            Blue400.copy(alpha = 0.30f),
+                            RoundedCornerShape(28.dp)
+                        )
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.FitnessCenter,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
+                modifier = Modifier.size(44.dp),
+                tint = Blue400
             )
         }
 
@@ -247,10 +291,11 @@ private fun OnboardingGoalPage(
             text = "Set Your Daily Goal",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            letterSpacing = (-0.5).sp
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Text(
             text = "For creatine users, we recommend 4L daily. Adjust to fit your needs.",
@@ -261,10 +306,13 @@ private fun OnboardingGoalPage(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Goal value display
         Text(
             text = String.format("%.1fL", goalMl / 1000f),
-            style = MaterialTheme.typography.displayMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.displayMedium.copy(
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-1.5).sp
+            ),
             color = MaterialTheme.colorScheme.primary
         )
 
@@ -278,7 +326,8 @@ private fun OnboardingGoalPage(
             steps = 27,
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -291,9 +340,22 @@ private fun OnboardingGoalPage(
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("1L", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("4L (Recommended)", style = MaterialTheme.typography.bodySmall, color = Blue500, fontWeight = FontWeight.Medium)
-            Text("8L", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "1 L",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "4 L · Recommended",
+                style = MaterialTheme.typography.bodySmall,
+                color = Blue400,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                "8 L",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

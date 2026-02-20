@@ -1,6 +1,11 @@
 package com.example.hydrotracker.ui.screens.history
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,32 +28,33 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.hydrotracker.HydroTrackApp
-import com.example.hydrotracker.ui.HapticType
-import com.example.hydrotracker.ui.performHaptic
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.hydrotracker.HydroTrackApp
 import com.example.hydrotracker.data.local.DailyTotal
+import com.example.hydrotracker.ui.HapticType
+import com.example.hydrotracker.ui.performHaptic
 import com.example.hydrotracker.ui.theme.Amber500
 import com.example.hydrotracker.ui.theme.Blue400
 import com.example.hydrotracker.ui.theme.Blue500
+import com.example.hydrotracker.ui.theme.Cyan400
+import com.example.hydrotracker.ui.theme.Green400
 import com.example.hydrotracker.ui.theme.Green500
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -67,39 +73,55 @@ fun HistoryScreen(
         .settingsDataStore.hapticEnabled
         .collectAsStateWithLifecycle(initialValue = true)
 
+    val isDark = MaterialTheme.colorScheme.background.run {
+        (red * 0.299f + green * 0.587f + blue * 0.114f) < 0.5f
+    }
+    val glassBg = if (isDark) Color(0xFF1E293B).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.72f)
+    val glassBorder = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.60f)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(horizontal = 20.dp)
+            .padding(top = 20.dp, bottom = 96.dp)
     ) {
+        // ── Page heading ──────────────────────────────────────────────────────
         Text(
             text = "History",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
+        Text(
+            text = "Your hydration journey",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp, bottom = 20.dp)
+        )
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Stats row
+        // ── Stat cards row ────────────────────────────────────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             StatCard(
                 icon = Icons.Default.LocalFireDepartment,
                 label = "Streak",
                 value = "${uiState.streak}",
                 unit = "days",
-                color = Amber500,
+                accentColor = Amber500,
+                glassBg = glassBg,
+                glassBorder = glassBorder,
                 modifier = Modifier.weight(1f)
             )
             StatCard(
                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                 label = "7-Day Avg",
                 value = String.format("%.1f", uiState.averageWeekly / 1000f),
-                unit = "L/day",
-                color = Blue500,
+                unit = "L / day",
+                accentColor = Blue500,
+                glassBg = glassBg,
+                glassBorder = glassBorder,
                 modifier = Modifier.weight(1f)
             )
             StatCard(
@@ -107,26 +129,23 @@ fun HistoryScreen(
                 label = "Goals Met",
                 value = "${uiState.totalDaysGoalMet}",
                 unit = "days",
-                color = Green500,
+                accentColor = Green500,
+                glassBg = glassBg,
+                glassBorder = glassBorder,
                 modifier = Modifier.weight(1f)
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Weekly bar chart
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Last 7 Days",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
+        // ── Weekly bar chart card ─────────────────────────────────────────────
+        GlassCard(glassBg = glassBg, glassBorder = glassBorder) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                SectionLabel(
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    title = "Last 7 Days"
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(18.dp))
                 WeeklyBarChart(
                     data = uiState.weeklyData,
                     goalMl = uiState.dailyGoalMl
@@ -134,97 +153,236 @@ fun HistoryScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Monthly calendar heatmap
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+        // ── Monthly heatmap card ──────────────────────────────────────────────
+        GlassCard(glassBg = glassBg, glassBorder = glassBorder) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                // Header row with month navigation
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = {
-                        performHaptic(context, HapticType.STRONG, hapticEnabled)
-                        viewModel.previousMonth()
-                    }) {
-                        Icon(Icons.Default.ChevronLeft, contentDescription = "Previous month")
+                    // Prev month
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .clickable {
+                                // TICK haptic — lightweight calendar nav
+                                performHaptic(context, HapticType.TICK, hapticEnabled)
+                                viewModel.previousMonth()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.ChevronLeft,
+                            contentDescription = "Previous month",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Text(
-                        text = uiState.selectedMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    IconButton(onClick = {
-                        performHaptic(context, HapticType.STRONG, hapticEnabled)
-                        viewModel.nextMonth()
-                    }) {
-                        Icon(Icons.Default.ChevronRight, contentDescription = "Next month")
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = uiState.selectedMonth.format(
+                                DateTimeFormatter.ofPattern("MMMM yyyy")
+                            ),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    // Next month
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .clickable {
+                                performHaptic(context, HapticType.TICK, hapticEnabled)
+                                viewModel.nextMonth()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = "Next month",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 MonthlyHeatmap(
                     month = uiState.selectedMonth,
                     data = uiState.monthlyData,
                     goalMl = uiState.dailyGoalMl
                 )
+
+                // Legend
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LegendItem(color = Green500, label = "Goal met")
+                    LegendItem(color = Blue400, label = "Partial")
+                    LegendItem(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        label = "None"
+                    )
+                }
             }
         }
-
-        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
+// ── Reusable glass card wrapper ───────────────────────────────────────────────
+
+@Composable
+private fun GlassCard(
+    glassBg: Color,
+    glassBorder: Color,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(glassBg)
+            .border(1.dp, glassBorder, RoundedCornerShape(20.dp))
+    ) {
+        content()
+    }
+}
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+
 @Composable
 private fun StatCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     value: String,
     unit: String,
-    color: androidx.compose.ui.graphics.Color,
+    accentColor: Color,
+    glassBg: Color,
+    glassBorder: Color,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(glassBg)
+            .border(1.dp, glassBorder, RoundedCornerShape(18.dp))
+            .padding(vertical = 14.dp, horizontal = 10.dp)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            // Icon pill
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(accentColor.copy(alpha = 0.14f))
+                    .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                fontSize = 22.sp
+                fontSize = 20.sp,
+                color = accentColor
             )
             Text(
                 text = unit,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                lineHeight = 14.sp
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp)
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.4.sp,
+                textAlign = TextAlign.Center
             )
         }
     }
 }
+
+// ── Section label with icon ───────────────────────────────────────────────────
+
+@Composable
+private fun SectionLabel(icon: ImageVector, title: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+// ── Legend item ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 10.sp
+        )
+    }
+}
+
+// ── Weekly bar chart ──────────────────────────────────────────────────────────
 
 @Composable
 private fun WeeklyBarChart(
@@ -239,14 +397,21 @@ private fun WeeklyBarChart(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp),
+            .height(150.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.Bottom
     ) {
         days.forEach { day ->
             val dateStr = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
             val total = dataMap[dateStr]?.totalMl ?: 0
-            val heightFraction = if (maxValue > 0) total.toFloat() / maxValue else 0f
+            val heightFraction by animateFloatAsState(
+                targetValue = if (maxValue > 0) total.toFloat() / maxValue else 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "barHeight"
+            )
             val isGoalMet = total >= goalMl
             val isToday = day == today
 
@@ -256,28 +421,57 @@ private fun WeeklyBarChart(
             ) {
                 // Amount label
                 Text(
-                    text = if (total > 0) String.format("%.1f", total / 1000f) else "-",
+                    text = if (total > 0) String.format("%.1f", total / 1000f) else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 10.sp
+                    fontSize = 9.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+
                 // Bar
                 Box(
                     modifier = Modifier
-                        .width(28.dp)
-                        .height((heightFraction * 90).dp.coerceAtLeast(4.dp))
-                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                        .width(26.dp)
+                        .height((heightFraction * 96).dp.coerceAtLeast(if (total > 0) 4.dp else 0.dp))
+                        .clip(RoundedCornerShape(topStart = 7.dp, topEnd = 7.dp))
                         .background(
-                            if (isGoalMet) Green500
-                            else if (total > 0) Blue400
-                            else MaterialTheme.colorScheme.surfaceVariant
+                            brush = when {
+                                isGoalMet -> Brush.verticalGradient(listOf(Green400, Green500))
+                                total > 0 -> Brush.verticalGradient(listOf(Blue400, Cyan400))
+                                else -> Brush.verticalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.Transparent
+                                    )
+                                )
+                            }
+                        )
+                        .then(
+                            if (total == 0) Modifier.background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ) else Modifier
                         )
                 )
+
                 Spacer(modifier = Modifier.height(6.dp))
+
+                // Today indicator dot
+                if (isToday) {
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                } else {
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+
                 // Day label
                 Text(
-                    text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                    text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+                        .take(1),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                     color = if (isToday) MaterialTheme.colorScheme.primary
@@ -287,28 +481,9 @@ private fun WeeklyBarChart(
             }
         }
     }
-
-    // Goal line label
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.End
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .background(Green500, CircleShape)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = "Goal met",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 10.sp
-        )
-    }
 }
+
+// ── Monthly heatmap ───────────────────────────────────────────────────────────
 
 @Composable
 private fun MonthlyHeatmap(
@@ -319,10 +494,11 @@ private fun MonthlyHeatmap(
     val dataMap = data.associateBy { it.date }
     val firstDay = month.atDay(1)
     val daysInMonth = month.lengthOfMonth()
-    val startDayOfWeek = firstDay.dayOfWeek.value // Monday=1, Sunday=7
+    // Monday = 1 … Sunday = 7
+    val startDayOfWeek = firstDay.dayOfWeek.value
     val today = LocalDate.now()
 
-    // Day of week headers
+    // Day-of-week header
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
@@ -333,15 +509,15 @@ private fun MonthlyHeatmap(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f)
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                fontSize = 11.sp
             )
         }
     }
 
     Spacer(modifier = Modifier.height(8.dp))
 
-    // Calendar grid
-    var dayCounter = 1
     val totalSlots = startDayOfWeek - 1 + daysInMonth
     val weeks = (totalSlots + 6) / 7
 
@@ -358,25 +534,39 @@ private fun MonthlyHeatmap(
                     val date = month.atDay(dayNum)
                     val dateStr = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
                     val total = dataMap[dateStr]?.totalMl ?: 0
-                    val intensity = if (goalMl > 0) (total.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
+                    val intensity =
+                        if (goalMl > 0) (total.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
                     val isFuture = date.isAfter(today)
+                    val isToday = date == today
 
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .padding(2.dp)
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(7.dp))
                             .background(
                                 when {
-                                    isFuture -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                    isFuture -> MaterialTheme.colorScheme.surfaceVariant.copy(
+                                        alpha = 0.25f
+                                    )
+
                                     intensity >= 1f -> Green500
-                                    intensity >= 0.75f -> Blue500.copy(alpha = 0.8f)
-                                    intensity >= 0.5f -> Blue400.copy(alpha = 0.6f)
-                                    intensity >= 0.25f -> Blue400.copy(alpha = 0.3f)
-                                    intensity > 0f -> Blue400.copy(alpha = 0.15f)
-                                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    intensity >= 0.75f -> Blue500.copy(alpha = 0.85f)
+                                    intensity >= 0.5f -> Blue400.copy(alpha = 0.60f)
+                                    intensity >= 0.25f -> Blue400.copy(alpha = 0.35f)
+                                    intensity > 0f -> Blue400.copy(alpha = 0.18f)
+                                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(
+                                        alpha = 0.40f
+                                    )
                                 }
+                            )
+                            .then(
+                                if (isToday) Modifier.border(
+                                    1.5.dp,
+                                    MaterialTheme.colorScheme.primary,
+                                    RoundedCornerShape(7.dp)
+                                ) else Modifier
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -384,9 +574,14 @@ private fun MonthlyHeatmap(
                             text = "$dayNum",
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 10.sp,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                             color = when {
-                                isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                intensity >= 0.75f -> androidx.compose.ui.graphics.Color.White
+                                isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                    alpha = 0.35f
+                                )
+
+                                intensity >= 0.75f -> Color.White
+                                isToday -> MaterialTheme.colorScheme.primary
                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                         )
@@ -395,6 +590,9 @@ private fun MonthlyHeatmap(
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
+        }
+        if (week < weeks - 1) {
+            Spacer(modifier = Modifier.height(2.dp))
         }
     }
 }
