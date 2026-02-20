@@ -13,12 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.hydrotracker.notification.ReminderWorker
 import com.example.hydrotracker.ui.HapticType
 import com.example.hydrotracker.ui.navigation.HydroNavigation
@@ -27,7 +25,6 @@ import com.example.hydrotracker.ui.screens.onboarding.OnboardingScreen
 import com.example.hydrotracker.ui.theme.HydroTrackerTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
 
@@ -52,16 +49,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Schedule reminders
-        val remindersEnabled = runBlocking { settings.remindersEnabled.first() }
-        val interval = runBlocking { settings.reminderIntervalMin.first() }
-        if (remindersEnabled) {
-            ReminderWorker.schedule(this, interval)
-        }
+        // Schedule reminders and fire launch haptic off the main thread
+        lifecycleScope.launch {
+            val remindersEnabled = settings.remindersEnabled.first()
+            val interval = settings.reminderIntervalMin.first()
+            if (remindersEnabled) {
+                ReminderWorker.schedule(this@MainActivity, interval)
+            }
 
-        // Launch haptic — strong pulse when the app opens
-        val hapticOn = runBlocking { settings.hapticEnabled.first() }
-        performHaptic(this, HapticType.STRONG, hapticOn)
+            val hapticOn = settings.hapticEnabled.first()
+            // performHaptic is safe to call from any thread; vibrator calls are non-blocking
+            performHaptic(this@MainActivity, HapticType.STRONG, hapticOn)
+        }
 
         setContent {
             val darkMode by settings.darkMode.collectAsState(initial = "system")
