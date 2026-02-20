@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -27,9 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.hydrotracker.ui.theme.Cyan400
 import com.example.hydrotracker.ui.theme.Blue400
 import com.example.hydrotracker.ui.theme.Blue500
+import com.example.hydrotracker.ui.theme.Cyan400
 import com.example.hydrotracker.ui.theme.Green400
 import com.example.hydrotracker.ui.theme.Green500
 import com.example.hydrotracker.ui.theme.Slate700
@@ -55,25 +56,27 @@ fun WaterProgressRing(
 
     val isGoalMet = currentMl >= goalMl
 
-    // Gradient colours for the arc
     val arcStart = if (isGoalMet) Green400 else Blue400
     val arcEnd = if (isGoalMet) Green500 else Cyan400
     val glowColor = if (isGoalMet) Green500 else Blue500
 
-    // Track colour
     val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
 
     Box(
         modifier = modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
-
-        // ── Canvas ring ────────────────────────────────────────────────────────
         Canvas(modifier = Modifier.size(size)) {
+
             val strokePx = strokeWidth.toPx()
-            val inset = strokePx / 2f + 2.dp.toPx()      // keep stroke inside bounds
-            val arcSize = Size(this.size.width - inset * 2, this.size.height - inset * 2)
+            // Keep the arc inside the canvas bounds
+            val inset = strokePx / 2f + 2.dp.toPx()
+            val arcSize = Size(this.size.width - inset * 2f, this.size.height - inset * 2f)
             val topLeft = Offset(inset, inset)
+
+            // Centre point — computed once, used throughout
+            val cx = this.size.width / 2f
+            val cy = this.size.height / 2f
 
             // ── Track (full 360°) ─────────────────────────────────────────────
             drawArc(
@@ -86,42 +89,44 @@ fun WaterProgressRing(
                 style = Stroke(width = strokePx, cap = StrokeCap.Round)
             )
 
-            // ── Glow shadow arc (drawn slightly wider, offset behind) ──────────
+            // ── Glow shadow arc ───────────────────────────────────────────────
             if (animatedProgress > 0.01f) {
-                drawIntoCanvas { canvas ->
-                    val paint = androidx.compose.ui.graphics.Paint().apply {
-                        asFrameworkPaint().apply {
-                            isAntiAlias = true
-                            style = android.graphics.Paint.Style.STROKE
-                            strokeWidth = strokePx + 8.dp.toPx()
-                            strokeCap = android.graphics.Paint.Cap.ROUND
-                            color = android.graphics.Color.TRANSPARENT
-                            setShadowLayer(
-                                14.dp.toPx(),   // blur radius
-                                0f, 0f,
-                                glowColor.copy(alpha = 0.55f).toArgb()
-                            )
-                        }
+                drawIntoCanvas { composeCanvas ->
+                    val nativeCanvas = composeCanvas.nativeCanvas
+
+                    val shadowPaint = android.graphics.Paint().apply {
+                        isAntiAlias = true
+                        style = android.graphics.Paint.Style.STROKE
+                        strokeWidth = strokePx + 8.dp.toPx()
+                        strokeCap = android.graphics.Paint.Cap.ROUND
+                        color = android.graphics.Color.TRANSPARENT
+                        setShadowLayer(
+                            14.dp.toPx(),
+                            0f,
+                            0f,
+                            glowColor.copy(alpha = 0.55f).toArgb()
+                        )
                     }
+
                     val oval = android.graphics.RectF(
-                        topLeft.x, topLeft.y,
+                        topLeft.x,
+                        topLeft.y,
                         topLeft.x + arcSize.width,
                         topLeft.y + arcSize.height
                     )
-                    canvas.nativeCanvas.drawArc(
+
+                    nativeCanvas.drawArc(
                         oval,
                         -90f,
                         animatedProgress * 360f,
                         false,
-                        paint.asFrameworkPaint()
+                        shadowPaint
                     )
                 }
             }
 
-            // ── Progress arc (sweep gradient via sweepGradient brush) ─────────
+            // ── Progress arc (sweep gradient) ─────────────────────────────────
             if (animatedProgress > 0.005f) {
-                val cx = this.size.width / 2f
-                val cy = this.size.height / 2f
                 drawArc(
                     brush = Brush.sweepGradient(
                         colorStops = arrayOf(
@@ -140,30 +145,28 @@ fun WaterProgressRing(
                 )
             }
 
-            // ── Tick marks at 25 / 50 / 75 % ─────────────────────────────────
-            val cx = this.size.width / 2f
-            val cy = this.size.height / 2f
+            // ── Tick marks at 0 / 90 / 180 / 270° ────────────────────────────
             val radius = arcSize.width / 2f
             listOf(0f, 90f, 180f, 270f).forEach { angleDeg ->
                 val rad = Math.toRadians((angleDeg - 90.0))
-                val cos = Math.cos(rad).toFloat()
-                val sin = Math.sin(rad).toFloat()
+                val cosA = Math.cos(rad).toFloat()
+                val sinA = Math.sin(rad).toFloat()
                 val inner = radius - strokePx * 0.5f - 3.dp.toPx()
                 val outer = radius + strokePx * 0.5f + 3.dp.toPx()
                 drawLine(
                     color = trackColor.copy(alpha = 0.6f),
-                    start = Offset(cx + cos * inner, cy + sin * inner),
-                    end = Offset(cx + cos * outer, cy + sin * outer),
+                    start = Offset(cx + cosA * inner, cy + sinA * inner),
+                    end = Offset(cx + cosA * outer, cy + sinA * outer),
                     strokeWidth = 1.5.dp.toPx(),
                     cap = StrokeCap.Round
                 )
             }
         }
 
-        // ── Centre text ────────────────────────────────────────────────────────
+        // ── Centre text ───────────────────────────────────────────────────────
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-            // Large formatted amount (e.g. "2.4L")
+            // Large amount label (e.g. "2.4L")
             Text(
                 text = formatAmount(currentMl),
                 style = MaterialTheme.typography.displaySmall.copy(
@@ -180,7 +183,7 @@ fun WaterProgressRing(
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // Sub-label "of X.XL goal"
+            // Sub-label "of X.XL"
             Text(
                 text = "of ${formatAmount(goalMl)}",
                 style = MaterialTheme.typography.bodySmall.copy(
@@ -193,13 +196,7 @@ fun WaterProgressRing(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Percentage pill
-            val pctText = "${(progress * 100).toInt()}%"
-            val pillColor = when {
-                isGoalMet -> Green500.copy(alpha = 0.18f)
-                progress > 0.5f -> Blue500.copy(alpha = 0.14f)
-                else -> Slate700.copy(alpha = 0.40f)
-            }
+            // Percentage label
             val pillTextColor = when {
                 isGoalMet -> Green400
                 progress > 0.5f -> Blue400
@@ -207,7 +204,7 @@ fun WaterProgressRing(
             }
 
             Text(
-                text = pctText,
+                text = "${(progress * 100).toInt()}%",
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 11.sp,

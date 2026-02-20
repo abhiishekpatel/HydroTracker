@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,10 +47,12 @@ import com.example.hydrotracker.ui.HapticType
 import com.example.hydrotracker.ui.performHaptic
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.hydrotracker.ui.theme.Blue400
 import com.example.hydrotracker.ui.theme.Blue500
 import com.example.hydrotracker.ui.theme.Cyan400
@@ -195,21 +198,17 @@ private fun OnboardingPage(
                 .size(96.dp)
                 .clip(RoundedCornerShape(28.dp))
                 .background(
-                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                    brush = Brush.linearGradient(
                         listOf(
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
                             MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f)
                         )
                     )
                 )
-                .then(
-                    Modifier.then(
-                        androidx.compose.foundation.border(
-                            1.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                            RoundedCornerShape(28.dp)
-                        )
-                    )
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    RoundedCornerShape(28.dp)
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -228,7 +227,7 @@ private fun OnboardingPage(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            letterSpacing = (-0.5).sp
+            letterSpacing = (-0.5f).sp
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -259,21 +258,17 @@ private fun OnboardingGoalPage(
                 .size(96.dp)
                 .clip(RoundedCornerShape(28.dp))
                 .background(
-                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                    brush = Brush.linearGradient(
                         listOf(
                             Blue500.copy(alpha = 0.22f),
                             Cyan400.copy(alpha = 0.14f)
                         )
                     )
                 )
-                .then(
-                    Modifier.then(
-                        androidx.compose.foundation.border(
-                            1.dp,
-                            Blue400.copy(alpha = 0.30f),
-                            RoundedCornerShape(28.dp)
-                        )
-                    )
+                .border(
+                    1.dp,
+                    Blue400.copy(alpha = 0.30f),
+                    RoundedCornerShape(28.dp)
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -292,7 +287,7 @@ private fun OnboardingGoalPage(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            letterSpacing = (-0.5).sp
+            letterSpacing = (-0.5f).sp
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -311,7 +306,7 @@ private fun OnboardingGoalPage(
             text = String.format("%.1fL", goalMl / 1000f),
             style = MaterialTheme.typography.displayMedium.copy(
                 fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-1.5).sp
+                letterSpacing = (-1.5f).sp
             ),
             color = MaterialTheme.colorScheme.primary
         )

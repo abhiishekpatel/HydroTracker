@@ -59,7 +59,7 @@ class MainActivity : ComponentActivity() {
 
             val hapticOn = settings.hapticEnabled.first()
             // performHaptic is safe to call from any thread; vibrator calls are non-blocking
-            performHaptic(this@MainActivity, HapticType.STRONG, hapticOn)
+            performHaptic(this@MainActivity, HapticType.MEDIUM, hapticOn)
         }
 
         setContent {
