@@ -19,11 +19,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.toArgb
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,14 +31,14 @@ import com.example.hydrotracker.ui.theme.Blue500
 import com.example.hydrotracker.ui.theme.Cyan400
 import com.example.hydrotracker.ui.theme.Green400
 import com.example.hydrotracker.ui.theme.Green500
-import com.example.hydrotracker.ui.theme.Slate700
+
 
 @Composable
 fun WaterProgressRing(
     currentMl: Int,
     goalMl: Int,
     modifier: Modifier = Modifier,
-    size: Dp = 230.dp,
+    ringSize: Dp = 230.dp,       // renamed from `size` to avoid shadowing DrawScope.size
     strokeWidth: Dp = 16.dp
 ) {
     val progress = (currentMl.toFloat() / goalMl.coerceAtLeast(1)).coerceIn(0f, 1f)
@@ -63,22 +61,21 @@ fun WaterProgressRing(
     val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
 
     Box(
-        modifier = modifier.size(size),
+        modifier = modifier.size(ringSize),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(size)) {
+        Canvas(modifier = Modifier.size(ringSize)) {
 
             val strokePx = strokeWidth.toPx()
-            // Keep the arc inside the canvas bounds
             val inset = strokePx / 2f + 2.dp.toPx()
-            val arcSize = Size(this.size.width - inset * 2f, this.size.height - inset * 2f)
+            // Use `size` from DrawScope (type Size) without ambiguity now
+            val arcSize = Size(size.width - inset * 2f, size.height - inset * 2f)
             val topLeft = Offset(inset, inset)
 
-            // Centre point — computed once, used throughout
-            val cx = this.size.width / 2f
-            val cy = this.size.height / 2f
+            val cx = size.width / 2f
+            val cy = size.height / 2f
 
-            // ── Track (full 360°) ─────────────────────────────────────────────
+            // Track (full 360°)
             drawArc(
                 color = trackColor,
                 startAngle = -90f,
@@ -89,43 +86,29 @@ fun WaterProgressRing(
                 style = Stroke(width = strokePx, cap = StrokeCap.Round)
             )
 
-            // ── Glow shadow arc ───────────────────────────────────────────────
+            // Glow shadow arc — simulated via two wider semi-transparent arcs
             if (animatedProgress > 0.01f) {
-                drawIntoCanvas { composeCanvas ->
-                    val nativeCanvas = composeCanvas.nativeCanvas
-
-                    val shadowPaint = android.graphics.Paint().apply {
-                        isAntiAlias = true
-                        style = android.graphics.Paint.Style.STROKE
-                        strokeWidth = strokePx + 8.dp.toPx()
-                        strokeCap = android.graphics.Paint.Cap.ROUND
-                        color = android.graphics.Color.TRANSPARENT
-                        setShadowLayer(
-                            14.dp.toPx(),
-                            0f,
-                            0f,
-                            glowColor.copy(alpha = 0.55f).toArgb()
-                        )
-                    }
-
-                    val oval = android.graphics.RectF(
-                        topLeft.x,
-                        topLeft.y,
-                        topLeft.x + arcSize.width,
-                        topLeft.y + arcSize.height
-                    )
-
-                    nativeCanvas.drawArc(
-                        oval,
-                        -90f,
-                        animatedProgress * 360f,
-                        false,
-                        shadowPaint
-                    )
-                }
+                drawArc(
+                    color = glowColor.copy(alpha = 0.12f),
+                    startAngle = -90f,
+                    sweepAngle = animatedProgress * 360f,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokePx + 16.dp.toPx(), cap = StrokeCap.Round)
+                )
+                drawArc(
+                    color = glowColor.copy(alpha = 0.25f),
+                    startAngle = -90f,
+                    sweepAngle = animatedProgress * 360f,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokePx + 7.dp.toPx(), cap = StrokeCap.Round)
+                )
             }
 
-            // ── Progress arc (sweep gradient) ─────────────────────────────────
+            // Progress arc (sweep gradient)
             if (animatedProgress > 0.005f) {
                 drawArc(
                     brush = Brush.sweepGradient(
@@ -145,7 +128,7 @@ fun WaterProgressRing(
                 )
             }
 
-            // ── Tick marks at 0 / 90 / 180 / 270° ────────────────────────────
+            // Tick marks at 0 / 90 / 180 / 270°
             val radius = arcSize.width / 2f
             listOf(0f, 90f, 180f, 270f).forEach { angleDeg ->
                 val rad = Math.toRadians((angleDeg - 90.0))
@@ -163,10 +146,9 @@ fun WaterProgressRing(
             }
         }
 
-        // ── Centre text ───────────────────────────────────────────────────────
+        // Centre text
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-            // Large amount label (e.g. "2.4L")
             Text(
                 text = formatAmount(currentMl),
                 style = MaterialTheme.typography.displaySmall.copy(
@@ -183,7 +165,6 @@ fun WaterProgressRing(
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // Sub-label "of X.XL"
             Text(
                 text = "of ${formatAmount(goalMl)}",
                 style = MaterialTheme.typography.bodySmall.copy(
@@ -196,7 +177,6 @@ fun WaterProgressRing(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Percentage label
             val pillTextColor = when {
                 isGoalMet -> Green400
                 progress > 0.5f -> Blue400
