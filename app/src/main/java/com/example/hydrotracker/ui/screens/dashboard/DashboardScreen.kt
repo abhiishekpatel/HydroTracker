@@ -1,17 +1,16 @@
 package com.example.hydrotracker.ui.screens.dashboard
 
+import android.os.Build
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,52 +27,55 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.hydrotracker.ui.HapticType
 import com.example.hydrotracker.ui.components.ConfettiEffect
 import com.example.hydrotracker.ui.components.QuickAddButtons
 import com.example.hydrotracker.ui.components.WaterProgressRing
 import com.example.hydrotracker.ui.components.WaveBackground
-import com.example.hydrotracker.ui.HapticType
+import com.example.hydrotracker.ui.components.rememberGyroTilt
 import com.example.hydrotracker.ui.performHaptic
-import com.example.hydrotracker.ui.theme.Amber500
-import com.example.hydrotracker.ui.theme.Blue400
-import com.example.hydrotracker.ui.theme.Blue500
-import com.example.hydrotracker.ui.theme.Cyan400
-import com.example.hydrotracker.ui.theme.Green400
-import com.example.hydrotracker.ui.theme.Green500
-import com.example.hydrotracker.ui.theme.Slate500
-import com.example.hydrotracker.ui.theme.Slate600
-import com.example.hydrotracker.ui.theme.Slate700
-import com.example.hydrotracker.ui.theme.Slate800
-import java.time.format.DateTimeFormatter
+import com.example.hydrotracker.ui.theme.Amber400
+import com.example.hydrotracker.ui.theme.Crystal400
+import com.example.hydrotracker.ui.theme.Crystal500
+import com.example.hydrotracker.ui.theme.IceBlue300
+import com.example.hydrotracker.ui.theme.IceBlue400
+import com.example.hydrotracker.ui.theme.IceBlue500
+import com.example.hydrotracker.ui.theme.Violet400
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -84,588 +86,729 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val view = LocalView.current
+
     var showResetDialog by remember { mutableStateOf(false) }
     var showCustomDialog by remember { mutableStateOf(false) }
-    var customAmount by remember { mutableStateOf("") }
 
-    // Goal-reached haptic — SUCCESS pattern fires once when confetti appears
+    val gyroTilt by rememberGyroTilt()
+
     LaunchedEffect(uiState.showConfetti) {
-        if (uiState.showConfetti) {
-            performHaptic(context, HapticType.SUCCESS, uiState.hapticEnabled)
-        }
+        if (uiState.showConfetti) performHaptic(context, HapticType.SUCCESS, uiState.hapticEnabled)
     }
 
     val progress = (uiState.currentIntakeMl.toFloat() / uiState.dailyGoalMl).coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "progress"
+        label = "progress",
     )
-
-    val isDark = MaterialTheme.colorScheme.background.run {
-        (red * 0.299f + green * 0.587f + blue * 0.114f) < 0.5f
-    }
-
-    // Glass surface colours that adapt to theme
-    val glassBg = if (isDark)
-        Color(0xFF1E293B).copy(alpha = 0.55f)
-    else
-        Color.White.copy(alpha = 0.72f)
-
-    val glassBorder = if (isDark)
-        Color.White.copy(alpha = 0.08f)
-    else
-        Color.White.copy(alpha = 0.60f)
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // Subtle wave fill behind content
+        // ── Layer 1: Physics water background ─────────────────────────────────
         WaveBackground(
             progress = progress,
-            modifier = Modifier.fillMaxSize()
+            gyroTilt = gyroTilt,
+            modifier = Modifier.fillMaxSize(),
         )
 
+        // ── Layer 2: Scrollable content ───────────────────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(bottom = 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Top bar ──────────────────────────────────────────────────────
+            // ── Top bar ───────────────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Streak pill
+                // Left: streak pill or wordmark
                 if (uiState.streak > 0) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    listOf(
-                                        Amber500.copy(alpha = 0.18f),
-                                        Color(0xFFFBBF24).copy(alpha = 0.12f)
-                                    )
-                                )
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = Amber500.copy(alpha = 0.30f),
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .background(Amber400.copy(alpha = 0.10f))
+                            .border(1.dp, Amber400.copy(alpha = 0.22f), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         Icon(
                             Icons.Default.LocalFireDepartment,
                             contentDescription = null,
-                            tint = Amber500,
-                            modifier = Modifier.size(16.dp)
+                            tint = Amber400,
+                            modifier = Modifier.size(13.dp),
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
                             text = "${uiState.streak} day streak",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Amber500,
-                            fontWeight = FontWeight.SemiBold
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Amber400,
+                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 } else {
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "HYDROTRACK",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            letterSpacing = 2.2.sp,
+                        ),
+                        color = Color.White.copy(alpha = 0.22f),
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
 
-                // Action icon buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Undo
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(glassBg)
-                            .border(1.dp, glassBorder, CircleShape)
-                            .clickable {
-                                performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
-                                viewModel.undoLastEntry()
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
+                // Right: icon action buttons
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DashIconButton(onClick = {
+                        performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
+                        viewModel.undoLastEntry()
+                    }) {
                         Icon(
                             Icons.AutoMirrored.Filled.Undo,
-                            contentDescription = "Undo last entry",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                            contentDescription = "Undo",
+                            tint = Color.White.copy(alpha = 0.50f),
+                            modifier = Modifier.size(17.dp),
                         )
                     }
-                    // Reset
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(glassBg)
-                            .border(1.dp, glassBorder, CircleShape)
-                            .clickable {
-                                performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
-                                showResetDialog = true
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    DashIconButton(onClick = {
+                        performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
+                        showResetDialog = true
+                    }) {
                         Icon(
                             Icons.Outlined.RestartAlt,
-                            contentDescription = "Reset day",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                            contentDescription = "Reset",
+                            tint = Color.White.copy(alpha = 0.50f),
+                            modifier = Modifier.size(17.dp),
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
-            // ── Water progress ring ───────────────────────────────────────────
+            // ── Hero orb ──────────────────────────────────────────────────────
             WaterProgressRing(
                 currentMl = uiState.currentIntakeMl,
                 goalMl = uiState.dailyGoalMl,
-                modifier = Modifier.padding(vertical = 4.dp)
+                gyroTilt = gyroTilt,
+                ringSize = 264.dp,
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
-            // ── Motivational message ──────────────────────────────────────────
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + slideInVertically()
-            ) {
-                Text(
-                    text = getMotivationalMessage(progress),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+            // ── Motivational text ─────────────────────────────────────────────
+            Text(
+                text = motivationalMessage(progress),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.40f),
+                fontWeight = FontWeight.Medium,
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // ── Pacing pill ───────────────────────────────────────────────────
+            // ── Pacing badge ──────────────────────────────────────────────────
             val pacingColor = when (uiState.pacingStatus) {
-                PacingStatus.AHEAD, PacingStatus.COMPLETED -> Green500
-                PacingStatus.ON_TRACK -> Blue500
-                PacingStatus.BEHIND -> Amber500
+                PacingStatus.AHEAD, PacingStatus.COMPLETED -> Crystal400
+                PacingStatus.ON_TRACK -> IceBlue400
+                PacingStatus.BEHIND -> Amber400
             }
-
+            val pacingLabel = when (uiState.pacingStatus) {
+                PacingStatus.AHEAD -> "Ahead of schedule"
+                PacingStatus.ON_TRACK -> "On track"
+                PacingStatus.BEHIND -> "Behind schedule"
+                PacingStatus.COMPLETED -> "Daily goal complete"
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(pacingColor.copy(alpha = 0.10f))
-                    .border(1.dp, pacingColor.copy(alpha = 0.22f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(pacingColor.copy(alpha = 0.08f))
+                    .border(1.dp, pacingColor.copy(alpha = 0.18f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 11.dp, vertical = 5.dp),
             ) {
                 Icon(
                     Icons.Outlined.Schedule,
                     contentDescription = null,
-                    modifier = Modifier.size(15.dp),
-                    tint = pacingColor
+                    modifier = Modifier.size(11.dp),
+                    tint = pacingColor,
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(5.dp))
                 Text(
-                    text = when (uiState.pacingStatus) {
-                        PacingStatus.AHEAD -> "Ahead of schedule"
-                        PacingStatus.ON_TRACK -> "On track"
-                        PacingStatus.BEHIND -> "Behind schedule"
-                        PacingStatus.COMPLETED -> "Goal reached! 🎉"
-                    },
-                    style = MaterialTheme.typography.labelMedium,
+                    text = pacingLabel,
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.2.sp),
                     fontWeight = FontWeight.SemiBold,
-                    color = pacingColor
+                    color = pacingColor,
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
-            // ── Progress summary card ─────────────────────────────────────────
-            Card(
+            // ── Stats + progress — single unified glass card ──────────────────
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = glassBg
-                ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, glassBorder),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    .padding(horizontal = 20.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.055f),
+                                Color.White.copy(alpha = 0.030f),
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.12f),
+                                Color.White.copy(alpha = 0.04f),
+                            )
+                        ),
+                        shape = RoundedCornerShape(22.dp),
+                    )
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+                    // Consumed / Remaining row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Consumed stat
-                        Column(horizontalAlignment = Alignment.Start) {
-                            Text(
-                                text = "CONSUMED",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                letterSpacing = 0.8.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = formatMl(uiState.currentIntakeMl),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (uiState.currentIntakeMl >= uiState.dailyGoalMl)
-                                    Green400 else MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        StatColumn(
+                            label = "CONSUMED",
+                            value = fmtMl(uiState.currentIntakeMl),
+                            valueColor = if (uiState.currentIntakeMl >= uiState.dailyGoalMl)
+                                Crystal400 else IceBlue400,
+                        )
 
-                        // Vertical divider
+                        // Thin vertical rule
                         Box(
                             modifier = Modifier
                                 .width(1.dp)
                                 .height(36.dp)
-                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                                .background(Color.White.copy(alpha = 0.08f))
                         )
 
-                        // Remaining stat
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "REMAINING",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                letterSpacing = 0.8.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = formatMl(
-                                    (uiState.dailyGoalMl - uiState.currentIntakeMl).coerceAtLeast(0)
-                                ),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                        StatColumn(
+                            label = "REMAINING",
+                            value = fmtMl(
+                                (uiState.dailyGoalMl - uiState.currentIntakeMl).coerceAtLeast(0)
+                            ),
+                            valueColor = Color.White.copy(alpha = 0.70f),
+                            align = Alignment.End,
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Progress track
+                    // Thin separator
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(7.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
+                            .height(1.dp)
+                            .background(Color.White.copy(alpha = 0.06f))
+                    )
+
+                    // Progress bar row
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = "DAILY GOAL",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    letterSpacing = 1.1.sp,
+                                ),
+                                color = Color.White.copy(alpha = 0.28f),
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = "${(progress * 100).toInt()}% · ${fmtMl(uiState.dailyGoalMl)}",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    letterSpacing = 0.2.sp,
+                                ),
+                                color = if (uiState.currentIntakeMl >= uiState.dailyGoalMl)
+                                    Crystal400 else IceBlue400,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        // Track
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(animatedProgress)
-                                .height(7.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(
-                                    brush = Brush.horizontalGradient(
+                                .fillMaxWidth()
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color.White.copy(alpha = 0.07f)),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(animatedProgress)
+                                    .height(5.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(
                                         if (uiState.currentIntakeMl >= uiState.dailyGoalMl)
-                                            listOf(Green400, Green500)
+                                            Brush.horizontalGradient(listOf(Crystal400, Crystal500))
                                         else
-                                            listOf(Blue400, Cyan400)
-                                    )
-                                )
-                        )
+                                            Brush.horizontalGradient(listOf(IceBlue400, Violet400))
+                                    ),
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "${(progress * 100).toInt()}% of ${formatMl(uiState.dailyGoalMl)} daily goal",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
-            // ── Quick add section label ───────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .height(1.dp)
-                        .weight(1f)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color.Transparent, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                            )
-                        )
-                )
-                Text(
-                    text = "  ADD WATER  ",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 1.2.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Box(
-                    modifier = Modifier
-                        .height(1.dp)
-                        .weight(1f)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), Color.Transparent)
-                            )
-                        )
-                )
-            }
-
+            // ── Add water label + buttons ─────────────────────────────────────
+            SectionLabel("ADD WATER")
             Spacer(modifier = Modifier.height(14.dp))
 
-            // ── Quick add buttons ─────────────────────────────────────────────
             QuickAddButtons(
                 amounts = uiState.quickAddAmounts,
                 onAddWater = { amount ->
-                    // MEDIUM haptic for every water-add
                     performHaptic(context, HapticType.MEDIUM, uiState.hapticEnabled)
                     viewModel.addWater(amount)
                 },
                 onCustomAdd = {
                     performHaptic(context, HapticType.CLICK, uiState.hapticEnabled)
                     showCustomDialog = true
-                }
+                },
             )
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
-            // ── Today's log card ──────────────────────────────────────────────
+            // ── Today's log ───────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = uiState.entries.isNotEmpty(),
-                enter = fadeIn() + slideInVertically { it / 2 }
+                enter = fadeIn() + slideInVertically { it / 2 },
             ) {
-                Card(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = glassBg),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, glassBorder),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Text(
-                            text = "Today's Log",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(bottom = 10.dp)
-                        )
-                        uiState.entries.take(5).forEach { entry ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 5.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                Brush.radialGradient(listOf(Blue400, Cyan400))
-                                            )
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "+${formatMl(entry.amountMl)}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                Text(
-                                    text = formatTime(entry.timestamp),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            if (uiState.entries.indexOf(entry) < uiState.entries.take(5).lastIndex) {
-                                Box(
+                    SectionLabel("TODAY")
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color.White.copy(alpha = 0.035f))
+                            .border(
+                                1.dp,
+                                Color.White.copy(alpha = 0.07f),
+                                RoundedCornerShape(18.dp),
+                            ),
+                    ) {
+                        Column {
+                            uiState.entries.take(5).forEachIndexed { idx, entry ->
+                                Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                                        .padding(horizontal = 16.dp, vertical = 13.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    Brush.radialGradient(
+                                                        listOf(IceBlue300, IceBlue500)
+                                                    )
+                                                )
                                         )
+                                        Text(
+                                            text = "+${fmtMl(entry.amountMl)}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = IceBlue400,
+                                        )
+                                    }
+                                    Text(
+                                        text = fmtTime(entry.timestamp),
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 11.sp
+                                        ),
+                                        color = Color.White.copy(alpha = 0.28f),
+                                    )
+                                }
+                                if (idx < (uiState.entries.take(5).size - 1)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp)
+                                            .height(1.dp)
+                                            .background(Color.White.copy(alpha = 0.05f))
+                                    )
+                                }
+                            }
+                            if (uiState.entries.size > 5) {
+                                Text(
+                                    text = "+${uiState.entries.size - 5} more entries",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp
+                                    ),
+                                    color = Color.White.copy(alpha = 0.22f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp),
+                                    textAlign = TextAlign.Center,
                                 )
                             }
-                        }
-                        if (uiState.entries.size > 5) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "+ ${uiState.entries.size - 5} more entries today",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(90.dp))
         }
 
-        // ── Confetti overlay ─────────────────────────────────────────────────
+        // ── Confetti ──────────────────────────────────────────────────────────
         ConfettiEffect(
             show = uiState.showConfetti,
             onComplete = { viewModel.dismissConfetti() },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         )
 
-        // ── Reset confirmation dialog ─────────────────────────────────────────
+        // ── Reset dialog ──────────────────────────────────────────────────────
         if (showResetDialog) {
             AlertDialog(
                 onDismissRequest = { showResetDialog = false },
                 shape = RoundedCornerShape(24.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = Color(0xFF0F1B2D),
                 title = {
                     Text(
-                        "Reset Today?",
+                        "Reset today?",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.90f),
                     )
                 },
                 text = {
                     Text(
-                        "All water entries for today will be removed. This cannot be undone.",
+                        "All water entries for today will be cleared.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color.White.copy(alpha = 0.45f),
                     )
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            // HEAVY haptic for destructive action
                             performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
                             viewModel.resetDay()
                             showResetDialog = false
                         },
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
                     ) {
                         Text("Reset", fontWeight = FontWeight.SemiBold)
                     }
                 },
                 dismissButton = {
-                    TextButton(
-                        onClick = {
-                            performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
-                            showResetDialog = false
-                        }
-                    ) {
-                        Text("Cancel")
+                    TextButton(onClick = {
+                        performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
+                        showResetDialog = false
+                    }) {
+                        Text("Cancel", color = Color.White.copy(alpha = 0.40f))
                     }
-                }
+                },
             )
         }
 
-        // ── Custom amount dialog ──────────────────────────────────────────────
+        // ── Custom amount dialog with haptic-per-step slider ──────────────────
         if (showCustomDialog) {
+            val stepMl = 50
+            val minMl = 50
+            val maxMl = 1500
+            val steps = (maxMl - minMl) / stepMl - 1
+
+            var sliderValue by remember { mutableFloatStateOf(250f) }
+            var lastHapticStep by remember { mutableIntStateOf(250 / stepMl) }
+
             AlertDialog(
                 onDismissRequest = {
                     showCustomDialog = false
-                    customAmount = ""
+                    sliderValue = 250f
                 },
                 shape = RoundedCornerShape(24.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = Color(0xFF0F1B2D),
                 title = {
                     Text(
                         "Custom Amount",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.90f),
                     )
                 },
                 text = {
-                    Column {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(
-                            "Enter the amount in millilitres:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = fmtMl(sliderValue.toInt()),
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-1.5).sp,
+                            ),
+                            color = IceBlue400,
+                            textAlign = TextAlign.Center,
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        androidx.compose.material3.OutlinedTextField(
-                            value = customAmount,
-                            onValueChange = { value ->
-                                if (value.all { it.isDigit() } && value.length <= 5) {
-                                    customAmount = value
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "drag to set amount",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.28f),
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // Slider with per-step haptic via View.performHapticFeedback —
+                        // the only reliable cross-device haptic inside onValueChange.
+                        Slider(
+                            value = sliderValue,
+                            onValueChange = { raw ->
+                                val snapped = (Math.round(raw.toDouble() / stepMl) * stepMl)
+                                    .coerceIn(minMl.toLong(), maxMl.toLong()).toFloat()
+                                sliderValue = snapped
+                                val step = (snapped / stepMl).toInt()
+                                if (step != lastHapticStep) {
+                                    lastHapticStep = step
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        view.performHapticFeedback(
+                                            HapticFeedbackConstants.CLOCK_TICK,
+                                            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING,
+                                        )
+                                    } else {
+                                        view.performHapticFeedback(
+                                            HapticFeedbackConstants.VIRTUAL_KEY,
+                                            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING,
+                                        )
+                                    }
                                 }
                             },
-                            label = { Text("ml") },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
+                            valueRange = minMl.toFloat()..maxMl.toFloat(),
+                            steps = steps,
+                            colors = SliderDefaults.colors(
+                                thumbColor = IceBlue400,
+                                activeTrackColor = IceBlue400,
+                                inactiveTrackColor = Color.White.copy(alpha = 0.08f),
+                                activeTickColor = Color.Transparent,
+                                inactiveTickColor = Color.Transparent,
+                            ),
                             modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
-                            )
                         )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                fmtMl(minMl),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.22f),
+                            )
+                            Text(
+                                fmtMl(maxMl),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.22f),
+                            )
+                        }
                     }
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            val amount = customAmount.toIntOrNull()
-                            if (amount != null && amount > 0) {
+                            val amount = sliderValue.toInt()
+                            if (amount > 0) {
                                 performHaptic(context, HapticType.MEDIUM, uiState.hapticEnabled)
                                 viewModel.addWater(amount)
                             }
                             showCustomDialog = false
-                            customAmount = ""
-                        }
+                            sliderValue = 250f
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = IceBlue400),
                     ) {
-                        Text("Add", fontWeight = FontWeight.SemiBold)
+                        Text("Add ${fmtMl(sliderValue.toInt())}", fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(
-                        onClick = {
-                            performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
-                            showCustomDialog = false
-                            customAmount = ""
-                        }
-                    ) {
-                        Text("Cancel")
+                    TextButton(onClick = {
+                        performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
+                        showCustomDialog = false
+                        sliderValue = 250f
+                    }) {
+                        Text("Cancel", color = Color.White.copy(alpha = 0.38f))
                     }
-                }
+                },
             )
         }
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Reusable sub-components
+// ─────────────────────────────────────────────────────────────────────────────
 
-private fun formatMl(ml: Int): String =
-    if (ml >= 1000) String.format("%.1fL", ml / 1000f) else "${ml}ml"
-
-private fun getMotivationalMessage(progress: Float): String = when {
-    progress <= 0f -> "Let's start hydrating 💧"
-    progress < 0.25f -> "Great start — keep it up!"
-    progress < 0.50f -> "You're building momentum 🚀"
-    progress < 0.75f -> "Halfway there — stay strong!"
-    progress < 1.00f -> "Almost at your goal 🔥"
-    else -> "Goal crushed! Incredible 🏆"
+@Composable
+private fun DashIconButton(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.86f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "btnScale",
+    )
+    Box(
+        modifier = Modifier
+            .scale(scale)
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.05f))
+            .border(1.dp, Color.White.copy(alpha = 0.09f), CircleShape)
+            .pointerInput(onClick) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        tryAwaitRelease()
+                        pressed = false
+                        onClick()
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
 }
 
-private fun formatTime(timestamp: Long): String {
-    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+@Composable
+private fun StatColumn(
+    label: String,
+    value: String,
+    valueColor: Color,
+    align: Alignment.Horizontal = Alignment.Start,
+) {
+    Column(horizontalAlignment = align) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 9.sp,
+                letterSpacing = 1.1.sp,
+            ),
+            color = Color.White.copy(alpha = 0.28f),
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp,
+            ),
+            color = valueColor,
+        )
+    }
+}
+
+@Composable
+private fun SectionLabel(label: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color.Transparent, Color.White.copy(alpha = 0.09f))
+                    )
+                )
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 9.sp,
+                letterSpacing = 1.6.sp,
+            ),
+            color = Color.White.copy(alpha = 0.25f),
+            fontWeight = FontWeight.Bold,
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color.White.copy(alpha = 0.09f), Color.Transparent)
+                    )
+                )
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Pure helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Formats a millilitre value for display.
+ * Values >= 1000 ml are shown as litres with one decimal place (e.g. "1.5L").
+ * Values < 1000 ml are shown as whole millilitres (e.g. "250ml").
+ */
+private fun fmtMl(ml: Int): String =
+    if (ml >= 1000) String.format("%.1fL", ml / 1000f)
+    else "${ml}ml"
+
+/**
+ * Formats a Unix-millisecond timestamp as a human-readable time string,
+ * e.g. "9:42 AM".
+ */
+private fun fmtTime(timestamp: Long): String {
+    val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
     return sdf.format(Date(timestamp))
+}
+
+/**
+ * Returns a short motivational message based on the current hydration progress.
+ */
+private fun motivationalMessage(progress: Float): String = when {
+    progress <= 0f    -> "Start your hydration journey 💧"
+    progress < 0.25f  -> "Every sip counts, keep going!"
+    progress < 0.50f  -> "You're building great habits!"
+    progress < 0.75f  -> "More than halfway there, nice work!"
+    progress < 1.00f  -> "Almost at your goal, finish strong!"
+    else              -> "Goal crushed! Amazing work today 🎉"
 }

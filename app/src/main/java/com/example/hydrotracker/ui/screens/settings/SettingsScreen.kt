@@ -1,5 +1,8 @@
 package com.example.hydrotracker.ui.screens.settings
 
+import android.os.Build
+import android.view.HapticFeedbackConstants
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,6 +65,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val view = LocalView.current
 
     val isDark = MaterialTheme.colorScheme.background.run {
         (red * 0.299f + green * 0.587f + blue * 0.114f) < 0.5f
@@ -136,12 +142,30 @@ fun SettingsScreen(
                 var sliderValue by remember(uiState.dailyGoalMl) {
                     mutableFloatStateOf(uiState.dailyGoalMl.toFloat())
                 }
+                var lastGoalStep by remember(uiState.dailyGoalMl) {
+                    mutableIntStateOf((uiState.dailyGoalMl / 250))
+                }
                 Slider(
                     value = sliderValue,
-                    onValueChange = { sliderValue = it },
+                    onValueChange = { raw ->
+                        sliderValue = raw
+                        val currentStep = (raw / 250).toInt()
+                        if (currentStep != lastGoalStep) {
+                            lastGoalStep = currentStep
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                view.performHapticFeedback(
+                                    HapticFeedbackConstants.CLOCK_TICK,
+                                    HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                )
+                            } else {
+                                view.performHapticFeedback(
+                                    HapticFeedbackConstants.VIRTUAL_KEY,
+                                    HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                )
+                            }
+                        }
+                    },
                     onValueChangeFinished = {
-                        // CLICK haptic — slider settled on a value
-                        performHaptic(context, HapticType.CLICK, uiState.hapticEnabled)
                         viewModel.setDailyGoal((sliderValue / 250).toInt() * 250)
                     },
                     valueRange = 1000f..8000f,
@@ -249,12 +273,30 @@ fun SettingsScreen(
                     var intervalSlider by remember(uiState.reminderIntervalMin) {
                         mutableFloatStateOf(uiState.reminderIntervalMin.toFloat())
                     }
+                    var lastIntervalStep by remember(uiState.reminderIntervalMin) {
+                        mutableIntStateOf((uiState.reminderIntervalMin / 15))
+                    }
                     Slider(
                         value = intervalSlider,
-                        onValueChange = { intervalSlider = it },
+                        onValueChange = { raw ->
+                            intervalSlider = raw
+                            val currentStep = (raw / 15).toInt()
+                            if (currentStep != lastIntervalStep) {
+                                lastIntervalStep = currentStep
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    view.performHapticFeedback(
+                                        HapticFeedbackConstants.CLOCK_TICK,
+                                        HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                    )
+                                } else {
+                                    view.performHapticFeedback(
+                                        HapticFeedbackConstants.VIRTUAL_KEY,
+                                        HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                    )
+                                }
+                            }
+                        },
                         onValueChangeFinished = {
-                            // CLICK haptic — slider settled
-                            performHaptic(context, HapticType.CLICK, uiState.hapticEnabled)
                             viewModel.setReminderInterval(intervalSlider.toInt())
                         },
                         valueRange = 30f..120f,

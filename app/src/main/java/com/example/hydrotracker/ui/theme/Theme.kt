@@ -7,95 +7,98 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val LightColorScheme = lightColorScheme(
-    primary = Blue500,
-    onPrimary = Color.White,
-    primaryContainer = Blue100,
-    onPrimaryContainer = Blue700,
-    secondary = Cyan500,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFCFFAFE),
-    onSecondaryContainer = Color(0xFF0C4A5E),
-    tertiary = Green500,
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFD1FAE5),
-    onTertiaryContainer = Green600,
-    error = Red500,
-    onError = Color.White,
-    errorContainer = Color(0xFFFFE4E6),
-    onErrorContainer = Color(0xFF7F1D1D),
-    background = Slate50,
-    onBackground = Slate900,
-    surface = Color.White,
-    onSurface = Slate900,
-    surfaceVariant = Slate100,
-    onSurfaceVariant = Slate600,
-    outline = Slate300,
-    outlineVariant = Slate200,
-    inverseSurface = Slate900,
-    inverseOnSurface = Slate100,
-    inversePrimary = Blue300,
-    surfaceContainerHighest = Slate100,
-    surfaceContainerHigh = Slate50,
-    surfaceContainer = Color.White,
-    surfaceContainerLow = Color.White,
-    surfaceContainerLowest = Color.White,
-)
-
 private val DarkColorScheme = darkColorScheme(
-    // Primary — vivid sky blue, readable on dark surfaces
-    primary = Blue400,
-    onPrimary = DeepNavy700,
-    primaryContainer = Blue600,
-    onPrimaryContainer = Blue200,
+    // Primary — ice blue
+    primary = IceBlue400,
+    onPrimary = Abyss,
+    primaryContainer = IceBlue600,
+    onPrimaryContainer = IceBlue300,
 
-    // Secondary — cyan accent
-    secondary = Cyan400,
-    onSecondary = Color(0xFF063B4A),
-    secondaryContainer = Color(0xFF0C4A5E),
-    onSecondaryContainer = Cyan300,
+    // Secondary — violet accent
+    secondary = Violet400,
+    onSecondary = Abyss,
+    secondaryContainer = Violet500,
+    onSecondaryContainer = Violet300,
 
-    // Tertiary — emerald (goal met / success)
-    tertiary = Green400,
-    onTertiary = Color(0xFF003919),
-    tertiaryContainer = Green600,
-    onTertiaryContainer = Color(0xFFD1FAE5),
+    // Tertiary — crystal green (goal / success)
+    tertiary = Crystal400,
+    onTertiary = Abyss,
+    tertiaryContainer = Crystal500,
+    onTertiaryContainer = Crystal300,
 
     // Error
-    error = Red400,
-    onError = Color(0xFF7F1D1D),
-    errorContainer = Color(0xFF450A0A),
-    onErrorContainer = Red400,
+    error = Rose400,
+    onError = Abyss,
+    errorContainer = Color(0xFF3B0A0A),
+    onErrorContainer = Rose400,
 
-    // ── Backgrounds — deep navy hierarchy ─────────────────────────────────────
-    // background: the very bottom layer — deepest colour
-    background = DeepNavy,
+    // Backgrounds — deep navy hierarchy
+    background = Abyss,
     onBackground = Slate100,
 
-    // surface: cards, sheets, dialogs — one step lighter
-    surface = DeepNavy800,
+    surface = AbyssMid,
     onSurface = Slate100,
 
-    // surfaceVariant: input fields, chips, non-interactive containers
-    surfaceVariant = Slate800,
-    onSurfaceVariant = Slate400,
+    surfaceVariant = AbyssHigh,
+    onSurfaceVariant = Slate300,
 
-    // outlines
     outline = Slate600,
     outlineVariant = Slate700,
 
-    // inverse (used for snackbars, tooltips)
     inverseSurface = Slate200,
     inverseOnSurface = Slate900,
-    inversePrimary = Blue600,
+    inversePrimary = IceBlue600,
 
-    // ── surfaceContainer family (M3 tonal surface layers) ─────────────────────
-    // Lowest → Highest follow deep-navy → slightly lighter progression
-    surfaceContainerLowest = DeepNavy,          // same as background
-    surfaceContainerLow = DeepNavy800,       // barely lifted
-    surfaceContainer = DeepNavy700,       // standard card
-    surfaceContainerHigh = Slate800,          // elevated card / modal
-    surfaceContainerHighest = Slate700,         // highest elevation
+    // surfaceContainer family
+    surfaceContainerLowest = Abyss,
+    surfaceContainerLow = AbyssMid,
+    surfaceContainer = AbyssHigh,
+    surfaceContainerHigh = AbyssElevated,
+    surfaceContainerHighest = Slate700,
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = IceBlue500,
+    onPrimary = Color.White,
+    primaryContainer = Blue100,
+    onPrimaryContainer = IceBlue600,
+
+    secondary = Violet500,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFEEF2FF),
+    onSecondaryContainer = Violet500,
+
+    tertiary = Crystal500,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFD1FAE5),
+    onTertiaryContainer = Crystal500,
+
+    error = Rose500,
+    onError = Color.White,
+    errorContainer = Color(0xFFFFE4E6),
+    onErrorContainer = Color(0xFF7F1D1D),
+
+    background = Slate50,
+    onBackground = Slate900,
+
+    surface = Color.White,
+    onSurface = Slate900,
+
+    surfaceVariant = Slate100,
+    onSurfaceVariant = Slate500,
+
+    outline = Slate300,
+    outlineVariant = Slate200,
+
+    inverseSurface = Slate900,
+    inverseOnSurface = Slate100,
+    inversePrimary = IceBlue300,
+
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Slate50,
+    surfaceContainer = Slate100,
+    surfaceContainerHigh = Slate200,
+    surfaceContainerHighest = Slate300,
 )
 
 @Composable

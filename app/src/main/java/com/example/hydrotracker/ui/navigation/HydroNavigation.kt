@@ -1,8 +1,8 @@
 package com.example.hydrotracker.ui.navigation
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,8 +12,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
@@ -33,9 +36,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -56,6 +60,9 @@ import com.example.hydrotracker.ui.screens.dashboard.DashboardScreen
 import com.example.hydrotracker.ui.screens.history.HistoryScreen
 import com.example.hydrotracker.ui.screens.settings.SettingsScreen
 import com.example.hydrotracker.ui.screens.tips.TipsScreen
+import com.example.hydrotracker.ui.theme.IceBlue400
+import com.example.hydrotracker.ui.theme.IceBlue500
+import com.example.hydrotracker.ui.theme.Violet400
 
 sealed class Screen(
     val route: String,
@@ -86,74 +93,101 @@ fun HydroNavigation() {
         .settingsDataStore.hapticEnabled
         .collectAsStateWithLifecycle(initialValue = true)
 
-    val isDark = MaterialTheme.colorScheme.background.run {
-        (red * 0.299f + green * 0.587f + blue * 0.114f) < 0.5f
-    }
 
-    val navBarBg = if (isDark)
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-    else
-        MaterialTheme.colorScheme.surface
-
-    val navBarBorder = if (isDark)
-        Color.White.copy(alpha = 0.07f)
-    else
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
 
     Scaffold(
+        containerColor = Color(0xFF060810),
         bottomBar = {
             Box(
                 modifier = Modifier
-                    .shadow(
-                        elevation = if (isDark) 0.dp else 8.dp,
-                        spotColor = Color.Black.copy(alpha = 0.12f)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFF0D1525).copy(alpha = 0.97f),
+                                Color(0xFF060810).copy(alpha = 0.99f)
+                            )
+                        )
                     )
-                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                    .background(navBarBg)
                     .border(
                         width = 1.dp,
-                        color = navBarBorder,
-                        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = 0.08f),
+                                Color.Transparent
+                            )
+                        ),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                     )
             ) {
                 NavigationBar(
                     containerColor = Color.Transparent,
                     tonalElevation = 0.dp,
-                    modifier = Modifier.height(68.dp)
+                    modifier = Modifier.height(72.dp)
                 ) {
                     bottomNavScreens.forEach { screen ->
                         val selected =
                             currentDestination?.hierarchy?.any { it.route == screen.route } == true
 
+                        val iconAlpha by animateFloatAsState(
+                            targetValue = if (selected) 1f else 0.38f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            label = "iconAlpha"
+                        )
+                        val iconSize by animateDpAsState(
+                            targetValue = if (selected) 22.dp else 20.dp,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessHigh
+                            ),
+                            label = "iconSize"
+                        )
+
                         NavigationBarItem(
                             icon = {
-                                val iconSize by animateDpAsState(
-                                    targetValue = if (selected) 24.dp else 22.dp,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessHigh
-                                    ),
-                                    label = "iconSize"
-                                )
-                                Icon(
-                                    imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                    contentDescription = screen.label,
-                                    modifier = Modifier.size(iconSize)
-                                )
+                                Box(contentAlignment = Alignment.TopCenter) {
+                                    Icon(
+                                        imageVector = if (selected) screen.selectedIcon
+                                        else screen.unselectedIcon,
+                                        contentDescription = screen.label,
+                                        tint = if (selected) IceBlue400
+                                        else Color.White.copy(alpha = iconAlpha),
+                                        modifier = Modifier.size(iconSize)
+                                    )
+                                    // Active dot indicator
+                                    if (selected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(3.dp)
+                                                .offset(y = (-6).dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    Brush.radialGradient(
+                                                        listOf(IceBlue400, Violet400)
+                                                    )
+                                                )
+                                        )
+                                    }
+                                }
                             },
                             label = {
                                 Text(
                                     text = screen.label,
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        letterSpacing = 0.3.sp
+                                        fontSize = 9.sp,
+                                        letterSpacing = 0.4.sp
                                     ),
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selected) IceBlue400
+                                    else Color.White.copy(alpha = 0.30f)
                                 )
                             },
                             selected = selected,
                             onClick = {
-                                // TICK haptic — lightweight, appropriate for tab navigation
                                 performHaptic(context, HapticType.TICK, hapticEnabled)
                                 navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
@@ -164,11 +198,11 @@ fun HydroNavigation() {
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                selectedIconColor = IceBlue400,
+                                selectedTextColor = IceBlue400,
+                                unselectedIconColor = Color.White.copy(alpha = 0.30f),
+                                unselectedTextColor = Color.White.copy(alpha = 0.30f),
+                                indicatorColor = Color.Transparent
                             )
                         )
                     }
