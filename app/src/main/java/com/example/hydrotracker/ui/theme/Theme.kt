@@ -58,47 +58,47 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = IceBlue500,
+    primary = HydroBlue,
     onPrimary = Color.White,
-    primaryContainer = Blue100,
-    onPrimaryContainer = IceBlue600,
+    primaryContainer = HydroBlueContainer,
+    onPrimaryContainer = HydroBlueDark,
 
     secondary = Violet500,
     onSecondary = Color.White,
     secondaryContainer = Color(0xFFEEF2FF),
     onSecondaryContainer = Violet500,
 
-    tertiary = Crystal500,
+    tertiary = HydroSuccess,
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFD1FAE5),
-    onTertiaryContainer = Crystal500,
+    tertiaryContainer = HydroSuccessContainer,
+    onTertiaryContainer = HydroSuccess,
 
     error = Rose500,
     onError = Color.White,
     errorContainer = Color(0xFFFFE4E6),
     onErrorContainer = Color(0xFF7F1D1D),
 
-    background = Slate50,
-    onBackground = Slate900,
+    background = LightBackground,
+    onBackground = HydroTextPrimary,
 
-    surface = Color.White,
-    onSurface = Slate900,
+    surface = HydroCardBg,
+    onSurface = HydroTextPrimary,
 
-    surfaceVariant = Slate100,
-    onSurfaceVariant = Slate500,
+    surfaceVariant = Color(0xFFEFF4FA),
+    onSurfaceVariant = HydroTextSecondary,
 
-    outline = Slate300,
-    outlineVariant = Slate200,
+    outline = HydroDivider,
+    outlineVariant = Color(0xFFF1F5F9),
 
-    inverseSurface = Slate900,
-    inverseOnSurface = Slate100,
-    inversePrimary = IceBlue300,
+    inverseSurface = HydroTextPrimary,
+    inverseOnSurface = Color.White,
+    inversePrimary = Color(0xFF93C5FD),
 
     surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Slate50,
-    surfaceContainer = Slate100,
-    surfaceContainerHigh = Slate200,
-    surfaceContainerHighest = Slate300,
+    surfaceContainerLow = Color(0xFFF8FAFC),
+    surfaceContainer = LightBackground,
+    surfaceContainerHigh = HydroDivider,
+    surfaceContainerHighest = Color(0xFFCDD8E8),
 )
 
 @Composable

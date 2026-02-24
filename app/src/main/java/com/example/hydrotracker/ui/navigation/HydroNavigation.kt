@@ -1,45 +1,32 @@
 package com.example.hydrotracker.ui.navigation
 
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -59,10 +46,9 @@ import com.example.hydrotracker.ui.performHaptic
 import com.example.hydrotracker.ui.screens.dashboard.DashboardScreen
 import com.example.hydrotracker.ui.screens.history.HistoryScreen
 import com.example.hydrotracker.ui.screens.settings.SettingsScreen
-import com.example.hydrotracker.ui.screens.tips.TipsScreen
-import com.example.hydrotracker.ui.theme.IceBlue400
-import com.example.hydrotracker.ui.theme.IceBlue500
-import com.example.hydrotracker.ui.theme.Violet400
+import com.example.hydrotracker.ui.theme.HydroBlue
+import com.example.hydrotracker.ui.theme.HydroTextSecondary
+import com.example.hydrotracker.ui.theme.LightBackground
 
 sealed class Screen(
     val route: String,
@@ -70,16 +56,14 @@ sealed class Screen(
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 ) {
-    data object Dashboard : Screen("dashboard", "Home", Icons.Filled.Home, Icons.Outlined.Home)
-    data object History : Screen("history", "History", Icons.Filled.History, Icons.Outlined.History)
-    data object Tips : Screen("tips", "Tips", Icons.Filled.Lightbulb, Icons.Outlined.Lightbulb)
+    data object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.WaterDrop, Icons.Outlined.WaterDrop)
+    data object History : Screen("history", "History", Icons.Filled.Equalizer, Icons.Outlined.Equalizer)
     data object Settings : Screen("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 }
 
 val bottomNavScreens = listOf(
     Screen.Dashboard,
     Screen.History,
-    Screen.Tips,
     Screen.Settings
 )
 
@@ -93,53 +77,32 @@ fun HydroNavigation() {
         .settingsDataStore.hapticEnabled
         .collectAsStateWithLifecycle(initialValue = true)
 
-
-
     Scaffold(
-        containerColor = Color(0xFF060810),
+        containerColor = LightBackground,
         bottomBar = {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color(0xFF0D1525).copy(alpha = 0.97f),
-                                Color(0xFF060810).copy(alpha = 0.99f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.horizontalGradient(
-                            listOf(
-                                Color.Transparent,
-                                Color.White.copy(alpha = 0.08f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                    )
+            Surface(
+                shadowElevation = 8.dp,
+                color = Color.White
             ) {
                 NavigationBar(
-                    containerColor = Color.Transparent,
+                    containerColor = Color.White,
                     tonalElevation = 0.dp,
-                    modifier = Modifier.height(72.dp)
+                    modifier = Modifier.height(64.dp)
                 ) {
                     bottomNavScreens.forEach { screen ->
                         val selected =
                             currentDestination?.hierarchy?.any { it.route == screen.route } == true
 
                         val iconAlpha by animateFloatAsState(
-                            targetValue = if (selected) 1f else 0.38f,
+                            targetValue = if (selected) 1f else 0.55f,
                             animationSpec = spring(
                                 dampingRatio = Spring.DampingRatioMediumBouncy,
                                 stiffness = Spring.StiffnessMedium
                             ),
                             label = "iconAlpha"
                         )
-                        val iconSize by animateDpAsState(
-                            targetValue = if (selected) 22.dp else 20.dp,
+                        val iconSize by animateFloatAsState(
+                            targetValue = if (selected) 24f else 22f,
                             animationSpec = spring(
                                 dampingRatio = Spring.DampingRatioMediumBouncy,
                                 stiffness = Spring.StiffnessHigh
@@ -149,41 +112,24 @@ fun HydroNavigation() {
 
                         NavigationBarItem(
                             icon = {
-                                Box(contentAlignment = Alignment.TopCenter) {
-                                    Icon(
-                                        imageVector = if (selected) screen.selectedIcon
-                                        else screen.unselectedIcon,
-                                        contentDescription = screen.label,
-                                        tint = if (selected) IceBlue400
-                                        else Color.White.copy(alpha = iconAlpha),
-                                        modifier = Modifier.size(iconSize)
-                                    )
-                                    // Active dot indicator
-                                    if (selected) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(3.dp)
-                                                .offset(y = (-6).dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    Brush.radialGradient(
-                                                        listOf(IceBlue400, Violet400)
-                                                    )
-                                                )
-                                        )
-                                    }
-                                }
+                                Icon(
+                                    imageVector = if (selected) screen.selectedIcon
+                                    else screen.unselectedIcon,
+                                    contentDescription = screen.label,
+                                    tint = if (selected) HydroBlue
+                                    else HydroTextSecondary.copy(alpha = iconAlpha),
+                                    modifier = Modifier.size(iconSize.dp)
+                                )
                             },
                             label = {
                                 Text(
                                     text = screen.label,
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 9.sp,
-                                        letterSpacing = 0.4.sp
+                                        fontSize = 10.sp
                                     ),
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (selected) IceBlue400
-                                    else Color.White.copy(alpha = 0.30f)
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (selected) HydroBlue
+                                    else HydroTextSecondary.copy(alpha = iconAlpha)
                                 )
                             },
                             selected = selected,
@@ -198,10 +144,10 @@ fun HydroNavigation() {
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = IceBlue400,
-                                selectedTextColor = IceBlue400,
-                                unselectedIconColor = Color.White.copy(alpha = 0.30f),
-                                unselectedTextColor = Color.White.copy(alpha = 0.30f),
+                                selectedIconColor = HydroBlue,
+                                selectedTextColor = HydroBlue,
+                                unselectedIconColor = HydroTextSecondary,
+                                unselectedTextColor = HydroTextSecondary,
                                 indicatorColor = Color.Transparent
                             )
                         )
@@ -213,16 +159,32 @@ fun HydroNavigation() {
         NavHost(
             navController = navController,
             startDestination = Screen.Dashboard.route,
-            modifier = Modifier.padding(innerPadding),
-            enterTransition = { fadeIn() + slideInVertically { it / 20 } },
+            modifier = Modifier,
+            enterTransition = { fadeIn() + slideInVertically { it / 30 } },
             exitTransition = { fadeOut() },
-            popEnterTransition = { fadeIn() + slideInVertically { -(it / 20) } },
-            popExitTransition = { fadeOut() + slideOutVertically { it / 20 } }
+            popEnterTransition = { fadeIn() + slideInVertically { -(it / 30) } },
+            popExitTransition = { fadeOut() + slideOutVertically { it / 30 } }
         ) {
-            composable(Screen.Dashboard.route) { DashboardScreen() }
-            composable(Screen.History.route) { HistoryScreen() }
-            composable(Screen.Tips.route) { TipsScreen() }
-            composable(Screen.Settings.route) { SettingsScreen() }
+            composable(Screen.Dashboard.route) {
+                DashboardScreen(
+                    bottomPadding = innerPadding.calculateBottomPadding(),
+                    onViewAllLogs = {
+                        navController.navigate(Screen.History.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+            composable(Screen.History.route) {
+                HistoryScreen(bottomPadding = innerPadding.calculateBottomPadding())
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(bottomPadding = innerPadding.calculateBottomPadding())
+            }
         }
     }
 }

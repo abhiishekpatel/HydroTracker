@@ -88,3 +88,17 @@ val WaterBlue = WaterPrimary
 val WaterBlueDark = WaterPrimaryDeep
 val WaterBlueLight = WaterHighlight
 val WaterBlueTransparent = WaterTransparent
+
+// ── Light Design Palette ──────────────────────────────────────────────────────
+val LightBackground = Color(0xFFF0F4F8)        // Page background (light blue-gray)
+val HydroBlue = Color(0xFF2563EB)              // Primary blue — buttons, active states
+val HydroBlueDark = Color(0xFF1D4ED8)          // Darker blue for pressed states
+val HydroBlueContainer = Color(0xFFEBF5FF)     // Soft blue container / icon backgrounds
+val HydroTextPrimary = Color(0xFF1E293B)       // Primary dark text
+val HydroTextSecondary = Color(0xFF64748B)     // Secondary gray text
+val HydroSuccess = Color(0xFF10B981)           // Success green
+val HydroSuccessContainer = Color(0xFFD1FAE5)  // Light green container
+val HydroWarning = Color(0xFFF59E0B)           // Warning amber
+val HydroWarningContainer = Color(0xFFFEF3C7)  // Light amber container
+val HydroDivider = Color(0xFFE2E8F0)           // Card borders / dividers
+val HydroCardBg = Color(0xFFFFFFFF)            // White card background

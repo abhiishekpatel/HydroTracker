@@ -8,9 +8,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,22 +21,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,32 +53,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.hydrotracker.data.local.WaterEntry
 import com.example.hydrotracker.ui.HapticType
 import com.example.hydrotracker.ui.components.ConfettiEffect
-import com.example.hydrotracker.ui.components.QuickAddButtons
-import com.example.hydrotracker.ui.components.WaterProgressRing
-import com.example.hydrotracker.ui.components.WaveBackground
-import com.example.hydrotracker.ui.components.rememberGyroTilt
 import com.example.hydrotracker.ui.performHaptic
-import com.example.hydrotracker.ui.theme.Amber400
-import com.example.hydrotracker.ui.theme.Crystal400
-import com.example.hydrotracker.ui.theme.Crystal500
-import com.example.hydrotracker.ui.theme.IceBlue300
-import com.example.hydrotracker.ui.theme.IceBlue400
-import com.example.hydrotracker.ui.theme.IceBlue500
-import com.example.hydrotracker.ui.theme.Violet400
+import com.example.hydrotracker.ui.theme.HydroBlue
+import com.example.hydrotracker.ui.theme.HydroBlueContainer
+import com.example.hydrotracker.ui.theme.HydroDivider
+import com.example.hydrotracker.ui.theme.HydroSuccess
+import com.example.hydrotracker.ui.theme.HydroTextPrimary
+import com.example.hydrotracker.ui.theme.HydroTextSecondary
+import com.example.hydrotracker.ui.theme.HydroWarning
+import com.example.hydrotracker.ui.theme.LightBackground
 import java.text.SimpleDateFormat
 import java.time.LocalTime
 import java.util.Date
@@ -83,7 +86,9 @@ import java.util.Locale
 
 @Composable
 fun DashboardScreen(
-    viewModel: DashboardViewModel = viewModel()
+    viewModel: DashboardViewModel = viewModel(),
+    bottomPadding: Dp = 0.dp,
+    onViewAllLogs: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -92,431 +97,239 @@ fun DashboardScreen(
     var showResetDialog by remember { mutableStateOf(false) }
     var showCustomDialog by remember { mutableStateOf(false) }
 
-    val gyroTilt by rememberGyroTilt()
-
     LaunchedEffect(uiState.showConfetti) {
         if (uiState.showConfetti) performHaptic(context, HapticType.SUCCESS, uiState.hapticEnabled)
     }
 
     val progress = (uiState.currentIntakeMl.toFloat() / uiState.dailyGoalMl).coerceIn(0f, 1f)
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "progress",
-    )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        // ── Layer 1: Physics water background ─────────────────────────────────
-        WaveBackground(
-            progress = progress,
-            gyroTilt = gyroTilt,
-            modifier = Modifier.fillMaxSize(),
-        )
-
-        // ── Layer 2: Scrollable content ───────────────────────────────────────
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LightBackground)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 36.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .statusBarsPadding()
+                .padding(bottom = bottomPadding + 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // ── Top bar ───────────────────────────────────────────────────────
+            // ── Top header ────────────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top
             ) {
-                // Left: streak pill or wordmark
-                if (uiState.streak > 0) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Amber400.copy(alpha = 0.10f))
-                            .border(1.dp, Amber400.copy(alpha = 0.22f), RoundedCornerShape(20.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.LocalFireDepartment,
-                            contentDescription = null,
-                            tint = Amber400,
-                            modifier = Modifier.size(13.dp),
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = "${uiState.streak} day streak",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Amber400,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                } else {
-                    val greeting = when (LocalTime.now().hour) {
-                        in 5..11 -> "Good morning"
-                        in 12..16 -> "Good afternoon"
-                        else -> "Good evening"
-                    }
+                Column {
                     Text(
-                        text = greeting,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontSize = 14.sp,
-                            letterSpacing = 0.1.sp,
-                        ),
-                        color = Color.White.copy(alpha = 0.55f),
-                        fontWeight = FontWeight.SemiBold,
+                        text = "Welcome back,",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = HydroTextSecondary
+                    )
+                    Text(
+                        text = timeGreeting(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = HydroTextPrimary
                     )
                 }
-
-                // Right: icon action buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DashIconButton(onClick = {
-                        performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
-                        viewModel.undoLastEntry()
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Undo,
-                            contentDescription = "Undo",
-                            tint = Color.White.copy(alpha = 0.50f),
-                            modifier = Modifier.size(17.dp),
-                        )
-                    }
-                    DashIconButton(onClick = {
-                        performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
-                        showResetDialog = true
-                    }) {
-                        Icon(
-                            Icons.Outlined.RestartAlt,
-                            contentDescription = "Reset",
-                            tint = Color.White.copy(alpha = 0.50f),
-                            modifier = Modifier.size(17.dp),
-                        )
-                    }
+                IconButton(
+                    onClick = { performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled) }
+                ) {
+                    Icon(
+                        Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = HydroTextPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Hero orb ──────────────────────────────────────────────────────
-            WaterProgressRing(
+            // ── Circular progress ring ────────────────────────────────────────
+            HydroCircularProgress(
                 currentMl = uiState.currentIntakeMl,
                 goalMl = uiState.dailyGoalMl,
-                gyroTilt = gyroTilt,
-                ringSize = 264.dp,
+                progress = progress,
+                goalMet = uiState.currentIntakeMl >= uiState.dailyGoalMl
             )
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // ── Motivational text ─────────────────────────────────────────────
             Text(
                 text = motivationalMessage(progress),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.62f),
-                fontWeight = FontWeight.Medium,
+                color = HydroBlue,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Pacing badge ──────────────────────────────────────────────────
-            val pacingColor = when (uiState.pacingStatus) {
-                PacingStatus.AHEAD, PacingStatus.COMPLETED -> Crystal400
-                PacingStatus.ON_TRACK -> IceBlue400
-                PacingStatus.BEHIND -> Amber400
-            }
-            val pacingLabel = when (uiState.pacingStatus) {
-                PacingStatus.AHEAD -> "Ahead of schedule"
-                PacingStatus.ON_TRACK -> "On track"
-                PacingStatus.BEHIND -> "Behind schedule"
-                PacingStatus.COMPLETED -> "Daily goal complete"
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(pacingColor.copy(alpha = 0.08f))
-                    .border(1.dp, pacingColor.copy(alpha = 0.18f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 11.dp, vertical = 5.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(11.dp),
-                    tint = pacingColor,
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                Text(
-                    text = pacingLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.2.sp),
-                    fontWeight = FontWeight.SemiBold,
-                    color = pacingColor,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // ── Stats + progress — single unified glass card ──────────────────
-            Box(
+            // ── Quick Add section ─────────────────────────────────────────────
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.075f),
-                                Color.White.copy(alpha = 0.042f),
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.16f),
-                                Color.White.copy(alpha = 0.05f),
-                            )
-                        ),
-                        shape = RoundedCornerShape(22.dp),
-                    )
-                    .padding(horizontal = 20.dp, vertical = 18.dp),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-
-                    // Consumed / Remaining row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        StatColumn(
-                            label = "Consumed",
-                            value = fmtMl(uiState.currentIntakeMl),
-                            valueColor = if (uiState.currentIntakeMl >= uiState.dailyGoalMl)
-                                Crystal400 else IceBlue400,
-                        )
-
-                        // Thin vertical rule
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(36.dp)
-                                .background(Color.White.copy(alpha = 0.10f))
-                        )
-
-                        StatColumn(
-                            label = "Remaining",
-                            value = fmtMl(
-                                (uiState.dailyGoalMl - uiState.currentIntakeMl).coerceAtLeast(0)
-                            ),
-                            valueColor = Color.White.copy(alpha = 0.75f),
-                            align = Alignment.End,
-                        )
-                    }
-
-                    // Thin separator
-                    Box(
+                Text(
+                    text = "Quick Add",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = HydroTextPrimary
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    QuickAddCard(
+                        amount = 250,
+                        isHighlighted = false,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color.White.copy(alpha = 0.06f))
+                            .weight(1f)
+                            .height(96.dp),
+                        onClick = {
+                            performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
+                            viewModel.addWater(250)
+                        }
                     )
-
-                    // Progress bar row
-                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text = "Daily Goal",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    letterSpacing = 0.3.sp,
-                                ),
-                                color = Color.White.copy(alpha = 0.42f),
-                                fontWeight = FontWeight.Medium,
-                            )
-                            Text(
-                                text = "${(progress * 100).toInt()}% · ${fmtMl(uiState.dailyGoalMl)}",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    letterSpacing = 0.2.sp,
-                                ),
-                                color = if (uiState.currentIntakeMl >= uiState.dailyGoalMl)
-                                    Crystal400 else IceBlue400,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                    QuickAddCard(
+                        amount = 500,
+                        isHighlighted = true,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(96.dp),
+                        onClick = {
+                            performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
+                            viewModel.addWater(500)
                         }
-                        // Track
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color.White.copy(alpha = 0.07f)),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(animatedProgress)
-                                    .height(5.dp)
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(
-                                        if (uiState.currentIntakeMl >= uiState.dailyGoalMl)
-                                            Brush.horizontalGradient(listOf(Crystal400, Crystal500))
-                                        else
-                                            Brush.horizontalGradient(listOf(IceBlue400, Violet400))
-                                    ),
-                            )
+                    )
+                    CustomAddCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(96.dp),
+                        onClick = {
+                            performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
+                            showCustomDialog = true
                         }
-                    }
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Add water label + buttons ─────────────────────────────────────
-            SectionLabel("Add water")
-            Spacer(modifier = Modifier.height(14.dp))
-
-            QuickAddButtons(
-                amounts = uiState.quickAddAmounts,
-                onAddWater = { amount ->
-                    performHaptic(context, HapticType.MEDIUM, uiState.hapticEnabled)
-                    viewModel.addWater(amount)
-                },
-                onCustomAdd = {
-                    performHaptic(context, HapticType.CLICK, uiState.hapticEnabled)
-                    showCustomDialog = true
-                },
-            )
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // ── Today's log ───────────────────────────────────────────────────
+            // ── Daily Log section ─────────────────────────────────────────────
             AnimatedVisibility(
                 visible = uiState.entries.isNotEmpty(),
-                enter = fadeIn() + slideInVertically { it / 2 },
+                enter = fadeIn() + slideInVertically { it / 2 }
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
+                        .padding(horizontal = 20.dp)
                 ) {
-                    SectionLabel("Today")
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color.White.copy(alpha = 0.048f))
-                            .border(
-                                1.dp,
-                                Color.White.copy(alpha = 0.10f),
-                                RoundedCornerShape(18.dp),
-                            ),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            uiState.entries.take(5).forEachIndexed { idx, entry ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 13.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(7.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    Brush.radialGradient(
-                                                        listOf(IceBlue300, IceBlue500)
-                                                    )
-                                                )
-                                        )
-                                        Text(
-                                            text = "+${fmtMl(entry.amountMl)}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = IceBlue400,
-                                        )
-                                    }
-                                    Text(
-                                        text = fmtTime(entry.timestamp),
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 11.sp
-                                        ),
-                                        color = Color.White.copy(alpha = 0.40f),
-                                    )
-                                }
-                                if (idx < (uiState.entries.take(5).size - 1)) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp)
-                                            .height(1.dp)
-                                            .background(Color.White.copy(alpha = 0.05f))
-                                    )
-                                }
-                            }
-                            if (uiState.entries.size > 5) {
-                                Text(
-                                    text = "+${uiState.entries.size - 5} more entries",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp
-                                    ),
-                                    color = Color.White.copy(alpha = 0.22f),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 12.dp),
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
+                        Text(
+                            text = "Daily Log",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = HydroTextPrimary
+                        )
+                        TextButton(onClick = {
+                            performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
+                            onViewAllLogs()
+                        }) {
+                            Text(
+                                text = "View All",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = HydroBlue,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        uiState.entries.take(4).forEach { entry ->
+                            LogEntryCard(entry)
+                        }
+                    }
+
+                    if (uiState.entries.size > 4) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = {
+                                performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
+                                viewModel.undoLastEntry()
+                            },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Text(
+                                "Undo last entry",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = HydroTextSecondary
+                            )
+                        }
+                    } else if (uiState.entries.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        TextButton(
+                            onClick = {
+                                performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
+                                viewModel.undoLastEntry()
+                            },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Text(
+                                "Undo last entry",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = HydroTextSecondary
+                            )
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(90.dp))
         }
 
         // ── Confetti ──────────────────────────────────────────────────────────
         ConfettiEffect(
             show = uiState.showConfetti,
             onComplete = { viewModel.dismissConfetti() },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize()
         )
 
         // ── Reset dialog ──────────────────────────────────────────────────────
         if (showResetDialog) {
             AlertDialog(
                 onDismissRequest = { showResetDialog = false },
-                shape = RoundedCornerShape(24.dp),
-                containerColor = Color(0xFF0F1B2D),
+                shape = RoundedCornerShape(20.dp),
+                containerColor = Color.White,
                 title = {
                     Text(
                         "Reset today?",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.90f),
+                        color = HydroTextPrimary
                     )
                 },
                 text = {
                     Text(
                         "All water entries for today will be cleared.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = HydroTextSecondary
                     )
                 },
                 confirmButton = {
@@ -526,25 +339,23 @@ fun DashboardScreen(
                             viewModel.resetDay()
                             showResetDialog = false
                         },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
                         Text("Reset", fontWeight = FontWeight.SemiBold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
+                        performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
                         showResetDialog = false
                     }) {
-                        Text("Cancel", color = Color.White.copy(alpha = 0.40f))
+                        Text("Cancel", color = HydroTextSecondary)
                     }
-                },
+                }
             )
         }
 
-        // ── Custom amount dialog with haptic-per-step slider ──────────────────
+        // ── Custom amount dialog ──────────────────────────────────────────────
         if (showCustomDialog) {
             val stepMl = 50
             val minMl = 50
@@ -559,40 +370,38 @@ fun DashboardScreen(
                     showCustomDialog = false
                     sliderValue = 250f
                 },
-                shape = RoundedCornerShape(24.dp),
-                containerColor = Color(0xFF0F1B2D),
+                shape = RoundedCornerShape(20.dp),
+                containerColor = Color.White,
                 title = {
                     Text(
                         "Custom Amount",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.90f),
+                        color = HydroTextPrimary
                     )
                 },
                 text = {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = fmtMl(sliderValue.toInt()),
                             style = MaterialTheme.typography.displaySmall.copy(
                                 fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = (-1.5).sp,
+                                letterSpacing = (-1.5).sp
                             ),
-                            color = IceBlue400,
-                            textAlign = TextAlign.Center,
+                            color = HydroBlue,
+                            textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "drag to set amount",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.28f),
+                            color = HydroTextSecondary
                         )
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // Slider with per-step haptic via View.performHapticFeedback —
-                        // the only reliable cross-device haptic inside onValueChange.
                         Slider(
                             value = sliderValue,
                             onValueChange = { raw ->
@@ -605,12 +414,12 @@ fun DashboardScreen(
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                         view.performHapticFeedback(
                                             HapticFeedbackConstants.CLOCK_TICK,
-                                            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING,
+                                            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
                                         )
                                     } else {
                                         view.performHapticFeedback(
                                             HapticFeedbackConstants.VIRTUAL_KEY,
-                                            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING,
+                                            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
                                         )
                                     }
                                 }
@@ -618,28 +427,28 @@ fun DashboardScreen(
                             valueRange = minMl.toFloat()..maxMl.toFloat(),
                             steps = steps,
                             colors = SliderDefaults.colors(
-                                thumbColor = IceBlue400,
-                                activeTrackColor = IceBlue400,
-                                inactiveTrackColor = Color.White.copy(alpha = 0.08f),
+                                thumbColor = HydroBlue,
+                                activeTrackColor = HydroBlue,
+                                inactiveTrackColor = HydroDivider,
                                 activeTickColor = Color.Transparent,
-                                inactiveTickColor = Color.Transparent,
+                                inactiveTickColor = Color.Transparent
                             ),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth()
                         )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 fmtMl(minMl),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.22f),
+                                color = HydroTextSecondary
                             )
                             Text(
                                 fmtMl(maxMl),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.22f),
+                                color = HydroTextSecondary
                             )
                         }
                     }
@@ -649,172 +458,317 @@ fun DashboardScreen(
                         onClick = {
                             val amount = sliderValue.toInt()
                             if (amount > 0) {
-                                performHaptic(context, HapticType.MEDIUM, uiState.hapticEnabled)
+                                performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
                                 viewModel.addWater(amount)
                             }
                             showCustomDialog = false
                             sliderValue = 250f
                         },
-                        colors = ButtonDefaults.textButtonColors(contentColor = IceBlue400),
+                        colors = ButtonDefaults.textButtonColors(contentColor = HydroBlue)
                     ) {
                         Text("Add ${fmtMl(sliderValue.toInt())}", fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        performHaptic(context, HapticType.TICK, uiState.hapticEnabled)
+                        performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
                         showCustomDialog = false
                         sliderValue = 250f
                     }) {
-                        Text("Cancel", color = Color.White.copy(alpha = 0.38f))
+                        Text("Cancel", color = HydroTextSecondary)
                     }
-                },
+                }
             )
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Reusable sub-components
+//  Circular progress ring composable
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun DashIconButton(
-    onClick: () -> Unit,
-    content: @Composable () -> Unit,
+private fun HydroCircularProgress(
+    currentMl: Int,
+    goalMl: Int,
+    progress: Float,
+    goalMet: Boolean,
+    modifier: Modifier = Modifier
 ) {
-    var pressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.86f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "btnScale",
+    val animProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "arcProgress"
     )
+    val arcColor = if (goalMet) HydroSuccess else HydroBlue
+
     Box(
-        modifier = Modifier
-            .scale(scale)
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.05f))
-            .border(1.dp, Color.White.copy(alpha = 0.09f), CircleShape)
-            .pointerInput(onClick) {
-                detectTapGestures(
-                    onPress = {
-                        pressed = true
-                        tryAwaitRelease()
-                        pressed = false
-                        onClick()
-                    }
-                )
-            },
-        contentAlignment = Alignment.Center,
+        modifier = modifier.size(240.dp),
+        contentAlignment = Alignment.Center
     ) {
-        content()
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokeWidth = 18.dp.toPx()
+            val diameter = size.minDimension - strokeWidth
+            val topLeft = Offset(
+                (size.width - diameter) / 2f,
+                (size.height - diameter) / 2f
+            )
+            val arcSize = Size(diameter, diameter)
+
+            // Gray track
+            drawArc(
+                color = Color(0xFFE2E8F0),
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+            // Blue/green progress arc
+            if (animProgress > 0.005f) {
+                drawArc(
+                    color = arcColor,
+                    startAngle = -90f,
+                    sweepAngle = 360f * animProgress,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                )
+            }
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.WaterDrop,
+                contentDescription = null,
+                tint = arcColor,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "$currentMl",
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = HydroTextPrimary,
+                    letterSpacing = (-1).sp
+                )
+                Text(
+                    text = "ml",
+                    fontSize = 14.sp,
+                    color = HydroTextSecondary,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 7.dp, start = 3.dp)
+                )
+            }
+            Text(
+                text = "of ${goalMl}ml goal",
+                fontSize = 13.sp,
+                color = HydroTextSecondary
+            )
+        }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Quick Add cards
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
-private fun StatColumn(
-    label: String,
-    value: String,
-    valueColor: Color,
-    align: Alignment.Horizontal = Alignment.Start,
+private fun QuickAddCard(
+    amount: Int,
+    isHighlighted: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(horizontalAlignment = align) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                letterSpacing = 0.3.sp,
-            ),
-            color = Color.White.copy(alpha = 0.45f),
-            fontWeight = FontWeight.Medium,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-0.5).sp,
-            ),
-            color = valueColor,
-        )
+    val bgColor = if (isHighlighted) HydroBlue else Color.White
+    val contentColor = if (isHighlighted) Color.White else HydroTextPrimary
+    val iconTint = if (isHighlighted) Color.White else HydroTextSecondary
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = bgColor,
+        shadowElevation = if (isHighlighted) 4.dp else 1.dp,
+        border = if (!isHighlighted) BorderStroke(1.dp, HydroDivider) else null,
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.LocalCafe,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "${amount}ml",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.SemiBold,
+                color = contentColor
+            )
+        }
     }
 }
 
 @Composable
-private fun SectionLabel(label: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+private fun CustomAddCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, HydroDivider),
+        onClick = onClick
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(Color.Transparent, Color.White.copy(alpha = 0.12f))
-                    )
-                )
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
-                letterSpacing = 0.4.sp,
-            ),
-            color = Color.White.copy(alpha = 0.38f),
-            fontWeight = FontWeight.Medium,
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)
-                    )
-                )
-        )
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = null,
+                tint = HydroTextSecondary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Custom",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = HydroTextPrimary
+            )
+        }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Pure helpers
+//  Log entry card
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Formats a millilitre value for display.
- * Values >= 1000 ml are shown as litres with one decimal place (e.g. "1.5L").
- * Values < 1000 ml are shown as whole millilitres (e.g. "250ml").
- */
-private fun fmtMl(ml: Int): String =
-    if (ml >= 1000) String.format("%.1fL", ml / 1000f)
-    else "${ml}ml"
+@Composable
+private fun LogEntryCard(entry: WaterEntry) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.White,
+        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, HydroDivider)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Blue circle icon
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(HydroBlueContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.WaterDrop,
+                    contentDescription = null,
+                    tint = HydroBlue,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
 
-/**
- * Formats a Unix-millisecond timestamp as a human-readable time string,
- * e.g. "9:42 AM".
- */
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = drinkName(entry.amountMl),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = HydroTextPrimary
+                )
+                Text(
+                    text = drinkLabel(entry.amountMl),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = HydroTextSecondary
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "+${fmtMl(entry.amountMl)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = HydroBlue
+                )
+                Text(
+                    text = fmtTime(entry.timestamp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = HydroTextSecondary
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+private fun timeGreeting(): String {
+    val hour = LocalTime.now().hour
+    return when (hour) {
+        in 5..11 -> "Good Morning!"
+        in 12..16 -> "Good Afternoon!"
+        else -> "Good Evening!"
+    }
+}
+
+private fun fmtMl(ml: Int): String =
+    if (ml >= 1000) String.format("%.1fL", ml / 1000f) else "${ml}ml"
+
 private fun fmtTime(timestamp: Long): String {
     val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
 
-/**
- * Returns a short motivational message based on the current hydration progress.
- */
+private fun drinkName(amountMl: Int): String = when {
+    amountMl <= 200 -> "Small Sip"
+    amountMl <= 350 -> "Water"
+    amountMl <= 600 -> "Water"
+    amountMl <= 900 -> "Tea"
+    else -> "Water Bottle"
+}
+
+private fun drinkLabel(amountMl: Int): String = when {
+    amountMl <= 200 -> "Quick hydration"
+    amountMl <= 350 -> "Hydration boost"
+    amountMl <= 600 -> "Regular drink"
+    amountMl <= 900 -> "Morning routine"
+    else -> "Super hydration"
+}
+
 private fun motivationalMessage(progress: Float): String = when {
-    progress <= 0f    -> "Start your hydration journey 💧"
-    progress < 0.25f  -> "Every sip counts, keep going!"
-    progress < 0.50f  -> "You're building great habits!"
-    progress < 0.75f  -> "More than halfway there, nice work!"
-    progress < 1.00f  -> "Almost at your goal, finish strong!"
-    else              -> "Goal crushed! Amazing work today 🎉"
+    progress <= 0f -> "Start your hydration journey!"
+    progress < 0.25f -> "Every sip counts, keep going!"
+    progress < 0.50f -> "Keep drinking! You're doing great."
+    progress < 0.75f -> "More than halfway, nice work!"
+    progress < 1.00f -> "Almost at your goal, finish strong!"
+    else -> "Goal crushed! Amazing work today!"
 }

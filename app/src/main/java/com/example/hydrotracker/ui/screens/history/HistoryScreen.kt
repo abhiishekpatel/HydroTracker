@@ -3,9 +3,8 @@ package com.example.hydrotracker.ui.screens.history
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,134 +15,157 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.hydrotracker.HydroTrackApp
 import com.example.hydrotracker.data.local.DailyTotal
-import com.example.hydrotracker.ui.HapticType
-import com.example.hydrotracker.ui.performHaptic
-import com.example.hydrotracker.ui.theme.Amber500
-import com.example.hydrotracker.ui.theme.Blue400
-import com.example.hydrotracker.ui.theme.Blue500
-import com.example.hydrotracker.ui.theme.Cyan400
-import com.example.hydrotracker.ui.theme.Green400
-import com.example.hydrotracker.ui.theme.Green500
-import java.time.DayOfWeek
+import com.example.hydrotracker.ui.theme.HydroBlue
+import com.example.hydrotracker.ui.theme.HydroBlueContainer
+import com.example.hydrotracker.ui.theme.HydroDivider
+import com.example.hydrotracker.ui.theme.HydroSuccess
+import com.example.hydrotracker.ui.theme.HydroSuccessContainer
+import com.example.hydrotracker.ui.theme.HydroTextPrimary
+import com.example.hydrotracker.ui.theme.HydroTextSecondary
+import com.example.hydrotracker.ui.theme.HydroWarning
+import com.example.hydrotracker.ui.theme.HydroWarningContainer
+import com.example.hydrotracker.ui.theme.LightBackground
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
 fun HistoryScreen(
-    viewModel: HistoryViewModel = viewModel()
+    viewModel: HistoryViewModel = viewModel(),
+    bottomPadding: Dp = 0.dp
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val hapticEnabled by (context.applicationContext as HydroTrackApp)
-        .settingsDataStore.hapticEnabled
-        .collectAsStateWithLifecycle(initialValue = true)
 
-    val isDark = MaterialTheme.colorScheme.background.run {
-        (red * 0.299f + green * 0.587f + blue * 0.114f) < 0.5f
+    val weeklyTotal = uiState.weeklyData.sumOf { it.totalMl }
+    val weekDaysGoalMet = uiState.weeklyData.count { it.totalMl >= uiState.dailyGoalMl }
+    val goalCompletionPct = if (uiState.weeklyData.isNotEmpty())
+        (weekDaysGoalMet * 100) / uiState.weeklyData.size else 0
+    val avgDailyL = if (uiState.averageWeekly > 0) uiState.averageWeekly / 1000f else 0f
+
+    val weeklyMotivation = when {
+        weeklyTotal == 0 -> "Start your hydration journey!"
+        weeklyTotal >= uiState.dailyGoalMl * 5 -> "You're doing great this week!"
+        weeklyTotal >= uiState.dailyGoalMl * 3 -> "Building great habits!"
+        else -> "Keep up the hydration habit."
     }
-    val glassBg = if (isDark) Color(0xFF1E293B).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.72f)
-    val glassBorder = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.60f)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(LightBackground)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
-            .padding(top = 20.dp, bottom = 96.dp)
+            .statusBarsPadding()
+            .padding(bottom = bottomPadding + 24.dp)
     ) {
-        // ── Page heading ──────────────────────────────────────────────────────
+        // ── Page title ────────────────────────────────────────────────────────
         Text(
-            text = "History",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = "Your hydration journey",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp, bottom = 20.dp)
+            text = "History & Insights",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = HydroTextPrimary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         )
 
-        // ── Stat cards row ────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        // ── Trophy header ─────────────────────────────────────────────────────
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            StatCard(
-                icon = Icons.Default.LocalFireDepartment,
-                label = "Streak",
-                value = "${uiState.streak}",
-                unit = "days",
-                accentColor = Amber500,
-                glassBg = glassBg,
-                glassBorder = glassBorder,
-                modifier = Modifier.weight(1f)
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(HydroBlueContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.EmojiEvents,
+                    contentDescription = null,
+                    tint = HydroBlue,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = weeklyMotivation,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = HydroTextPrimary,
+                textAlign = TextAlign.Center
             )
-            StatCard(
-                icon = Icons.AutoMirrored.Filled.TrendingUp,
-                label = "7-Day Avg",
-                value = String.format("%.1f", uiState.averageWeekly / 1000f),
-                unit = "L / day",
-                accentColor = Blue500,
-                glassBg = glassBg,
-                glassBorder = glassBorder,
-                modifier = Modifier.weight(1f)
-            )
-            StatCard(
-                icon = Icons.Default.EmojiEvents,
-                label = "Goals Met",
-                value = "${uiState.totalDaysGoalMet}",
-                unit = "days",
-                accentColor = Green500,
-                glassBg = glassBg,
-                glassBorder = glassBorder,
-                modifier = Modifier.weight(1f)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Keep up the hydration habit.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = HydroTextSecondary,
+                textAlign = TextAlign.Center
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // ── Weekly bar chart card ─────────────────────────────────────────────
-        GlassCard(glassBg = glassBg, glassBorder = glassBorder) {
+        // ── Weekly hydration summary card ─────────────────────────────────────
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            shadowElevation = 2.dp,
+            border = BorderStroke(1.dp, HydroDivider)
+        ) {
             Column(modifier = Modifier.padding(18.dp)) {
-                SectionLabel(
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    title = "Last 7 Days"
+                Text(
+                    text = "WEEKLY HYDRATION",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                    color = HydroTextSecondary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = String.format("%.1f L", weeklyTotal / 1000f),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = HydroTextPrimary
                 )
                 Spacer(modifier = Modifier.height(18.dp))
                 WeeklyBarChart(
@@ -153,236 +175,379 @@ fun HistoryScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // ── Monthly heatmap card ──────────────────────────────────────────────
-        GlassCard(glassBg = glassBg, glassBorder = glassBorder) {
-            Column(modifier = Modifier.padding(18.dp)) {
-                // Header row with month navigation
+        // ── Two mini stat cards ───────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Avg daily intake
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                shadowElevation = 1.dp,
+                border = BorderStroke(1.dp, HydroDivider)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(HydroBlueContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.WaterDrop,
+                                contentDescription = null,
+                                tint = HydroBlue,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Avg Daily Intake",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = HydroTextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = String.format("%.1f L", avgDailyL),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = HydroTextPrimary
+                    )
+                }
+            }
+
+            // Goal completion
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                shadowElevation = 1.dp,
+                border = BorderStroke(1.dp, HydroDivider)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(HydroSuccessContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = HydroSuccess,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Goal Completion",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = HydroTextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "$goalCompletionPct%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = HydroTextPrimary
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ── Recent Logs ───────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Recent Logs",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = HydroTextPrimary
+            )
+            Text(
+                text = "View All",
+                style = MaterialTheme.typography.bodySmall,
+                color = HydroBlue,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val today = LocalDate.now()
+        val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+        val dataMap = uiState.weeklyData.associateBy { it.date }
+
+        // Today
+        RecentLogCard(
+            date = today,
+            totalMl = dataMap[today.format(dateFormatter)]?.totalMl ?: 0,
+            goalMl = uiState.dailyGoalMl,
+            isToday = true
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Yesterday
+        val yesterday = today.minusDays(1)
+        val yesterdayTotal = dataMap[yesterday.format(dateFormatter)]?.totalMl ?: 0
+        RecentLogCard(
+            date = yesterday,
+            totalMl = yesterdayTotal,
+            goalMl = uiState.dailyGoalMl,
+            isToday = false
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Day before
+        val dayBefore = today.minusDays(2)
+        val dayBeforeTotal = dataMap[dayBefore.format(dateFormatter)]?.totalMl ?: 0
+        RecentLogCard(
+            date = dayBefore,
+            totalMl = dayBeforeTotal,
+            goalMl = uiState.dailyGoalMl,
+            isToday = false
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Recent log card
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun RecentLogCard(
+    date: LocalDate,
+    totalMl: Int,
+    goalMl: Int,
+    isToday: Boolean
+) {
+    val goalMet = totalMl >= goalMl && totalMl > 0
+    val progress = if (goalMl > 0) (totalMl.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
+
+    val dateLabel = when {
+        isToday -> "Today"
+        date == LocalDate.now().minusDays(1) -> "Yesterday"
+        else -> date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    }
+    val dateSubtitle = "${date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())}, ${
+        date.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+    } ${date.dayOfMonth}"
+
+    if (isToday) {
+        // Blue card for today
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = HydroBlue
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Prev month
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                            .clickable {
-                                // TICK haptic — lightweight calendar nav
-                                performHaptic(context, HapticType.TICK, hapticEnabled)
-                                viewModel.previousMonth()
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.ChevronLeft,
-                            contentDescription = "Previous month",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Today,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = dateLabel,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = dateSubtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.75f)
+                            )
+                        }
                     }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = uiState.selectedMonth.format(
-                                DateTimeFormatter.ofPattern("MMMM yyyy")
-                            ),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    // Next month
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                            .clickable {
-                                performHaptic(context, HapticType.TICK, hapticEnabled)
-                                viewModel.nextMonth()
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.ChevronRight,
-                            contentDescription = "Next month",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = String.format("%.1f L", totalMl / 1000f),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                MonthlyHeatmap(
-                    month = uiState.selectedMonth,
-                    data = uiState.monthlyData,
-                    goalMl = uiState.dailyGoalMl
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.3f),
+                    strokeCap = StrokeCap.Round
                 )
-
-                // Legend
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    LegendItem(color = Green500, label = "Goal met")
-                    LegendItem(color = Blue400, label = "Partial")
-                    LegendItem(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        label = "None"
+                    Text(
+                        text = "Daily Goal: ${String.format("%.1f", goalMl / 1000f)} L",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.75f)
+                    )
+                    Text(
+                        text = "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
                     )
                 }
             }
         }
-    }
-}
-
-// ── Reusable glass card wrapper ───────────────────────────────────────────────
-
-@Composable
-private fun GlassCard(
-    glassBg: Color,
-    glassBorder: Color,
-    content: @Composable () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(glassBg)
-            .border(1.dp, glassBorder, RoundedCornerShape(20.dp))
-    ) {
-        content()
-    }
-}
-
-// ── Stat card ─────────────────────────────────────────────────────────────────
-
-@Composable
-private fun StatCard(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    unit: String,
-    accentColor: Color,
-    glassBg: Color,
-    glassBorder: Color,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(glassBg)
-            .border(1.dp, glassBorder, RoundedCornerShape(18.dp))
-            .padding(vertical = 14.dp, horizontal = 10.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+    } else {
+        // White card for other days
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            shadowElevation = 1.dp,
+            border = BorderStroke(1.dp, HydroDivider)
         ) {
-            // Icon pill
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(34.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(accentColor.copy(alpha = 0.14f))
-                    .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(LightBackground),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.History,
+                            contentDescription = null,
+                            tint = HydroTextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = dateLabel,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = HydroTextPrimary
+                        )
+                        Text(
+                            text = dateSubtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = HydroTextSecondary
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = String.format("%.1f L", totalMl / 1000f),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = HydroTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    if (totalMl > 0) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (goalMet) {
+                                Icon(
+                                    Icons.Filled.CheckCircle,
+                                    contentDescription = null,
+                                    tint = HydroSuccess,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "Goal Met",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = HydroSuccess,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Filled.Warning,
+                                    contentDescription = null,
+                                    tint = HydroWarning,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "Goal Missed",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = HydroWarning,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "No data",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = HydroTextSecondary
+                        )
+                    }
+                }
             }
-
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = accentColor
-            )
-            Text(
-                text = unit,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                lineHeight = 14.sp
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.4.sp,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
 
-// ── Section label with icon ───────────────────────────────────────────────────
-
-@Composable
-private fun SectionLabel(icon: ImageVector, title: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-// ── Legend item ───────────────────────────────────────────────────────────────
-
-@Composable
-private fun LegendItem(color: Color, label: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 10.sp
-        )
-    }
-}
-
-// ── Weekly bar chart ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Weekly bar chart
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun WeeklyBarChart(
@@ -397,7 +562,7 @@ private fun WeeklyBarChart(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp),
+            .height(140.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.Bottom
     ) {
@@ -412,187 +577,50 @@ private fun WeeklyBarChart(
                 ),
                 label = "barHeight"
             )
-            val isGoalMet = total >= goalMl
             val isToday = day == today
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                // Amount label
-                Text(
-                    text = if (total > 0) String.format("%.1f", total / 1000f) else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 9.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Bar
+                // Background track bar
                 Box(
-                    modifier = Modifier
-                        .width(26.dp)
-                        .height((heightFraction * 96).dp.coerceAtLeast(if (total > 0) 4.dp else 0.dp))
-                        .clip(RoundedCornerShape(topStart = 7.dp, topEnd = 7.dp))
-                        .background(
-                            brush = when {
-                                isGoalMet -> Brush.verticalGradient(listOf(Green400, Green500))
-                                total > 0 -> Brush.verticalGradient(listOf(Blue400, Cyan400))
-                                else -> Brush.verticalGradient(
-                                    listOf(
-                                        Color.Transparent,
-                                        Color.Transparent
-                                    )
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    // Empty track
+                    Box(
+                        modifier = Modifier
+                            .width(28.dp)
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                            .background(Color(0xFFEFF4FA))
+                    )
+                    // Filled portion
+                    if (total > 0) {
+                        Box(
+                            modifier = Modifier
+                                .width(28.dp)
+                                .height((heightFraction * 96).dp.coerceAtLeast(4.dp))
+                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                .background(
+                                    if (isToday) HydroBlue
+                                    else HydroBlue.copy(alpha = 0.55f)
                                 )
-                            }
                         )
-                        .then(
-                            if (total == 0) Modifier.background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            ) else Modifier
-                        )
-                )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Today indicator dot
-                if (isToday) {
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                } else {
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-
-                // Day label
                 Text(
-                    text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-                        .take(1),
+                    text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(3),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isToday) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp
+                    color = if (isToday) HydroBlue else HydroTextSecondary,
+                    fontSize = 10.sp
                 )
             }
-        }
-    }
-}
-
-// ── Monthly heatmap ───────────────────────────────────────────────────────────
-
-@Composable
-private fun MonthlyHeatmap(
-    month: YearMonth,
-    data: List<DailyTotal>,
-    goalMl: Int
-) {
-    val dataMap = data.associateBy { it.date }
-    val firstDay = month.atDay(1)
-    val daysInMonth = month.lengthOfMonth()
-    // Monday = 1 … Sunday = 7
-    val startDayOfWeek = firstDay.dayOfWeek.value
-    val today = LocalDate.now()
-
-    // Day-of-week header
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
-            Text(
-                text = day,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-                fontSize = 11.sp
-            )
-        }
-    }
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    val totalSlots = startDayOfWeek - 1 + daysInMonth
-    val weeks = (totalSlots + 6) / 7
-
-    for (week in 0 until weeks) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            for (dayOfWeek in 1..7) {
-                val slotIndex = week * 7 + dayOfWeek
-                val dayNum = slotIndex - (startDayOfWeek - 1)
-
-                if (dayNum in 1..daysInMonth) {
-                    val date = month.atDay(dayNum)
-                    val dateStr = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                    val total = dataMap[dateStr]?.totalMl ?: 0
-                    val intensity =
-                        if (goalMl > 0) (total.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
-                    val isFuture = date.isAfter(today)
-                    val isToday = date == today
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(2.dp)
-                            .size(30.dp)
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(
-                                when {
-                                    isFuture -> MaterialTheme.colorScheme.surfaceVariant.copy(
-                                        alpha = 0.25f
-                                    )
-
-                                    intensity >= 1f -> Green500
-                                    intensity >= 0.75f -> Blue500.copy(alpha = 0.85f)
-                                    intensity >= 0.5f -> Blue400.copy(alpha = 0.60f)
-                                    intensity >= 0.25f -> Blue400.copy(alpha = 0.35f)
-                                    intensity > 0f -> Blue400.copy(alpha = 0.18f)
-                                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(
-                                        alpha = 0.40f
-                                    )
-                                }
-                            )
-                            .then(
-                                if (isToday) Modifier.border(
-                                    1.5.dp,
-                                    MaterialTheme.colorScheme.primary,
-                                    RoundedCornerShape(7.dp)
-                                ) else Modifier
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "$dayNum",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
-                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                            color = when {
-                                isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                    alpha = 0.35f
-                                )
-
-                                intensity >= 0.75f -> Color.White
-                                isToday -> MaterialTheme.colorScheme.primary
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-        if (week < weeks - 1) {
-            Spacer(modifier = Modifier.height(2.dp))
         }
     }
 }
