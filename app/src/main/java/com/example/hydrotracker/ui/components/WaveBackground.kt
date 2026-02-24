@@ -13,52 +13,44 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import kotlinx.coroutines.isActive
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.sin
 import kotlin.math.tan
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Physics constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-private const val BG_N = 80      // wave sample columns
-private const val BG_K = 0.026f  // spring tension between neighbours
-private const val BG_DAMP = 0.016f  // velocity damping per tick
-private const val BG_MAX_DT = 0.032f  // timestep cap (~30 fps floor)
+private const val BG_N = 80          // wave sample columns
+private const val BG_K = 0.022f      // spring tension — slightly softer for fluid feel
+private const val BG_DAMP = 0.018f   // velocity damping per tick
+private const val BG_MAX_DT = 0.032f // timestep cap (~30 fps floor)
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Pure-spring wave state  (zero equilibrium — slope lives only in drawing)
+//  Pure-spring wave state
 // ─────────────────────────────────────────────────────────────────────────────
 
 private class BgWave(val n: Int = BG_N) {
-    val h = FloatArray(n)   // surface height offsets (px); + = surface moves DOWN
-    val v = FloatArray(n)   // velocities (px / s)
+    val h = FloatArray(n)
+    val v = FloatArray(n)
 
-    /**
-     * Advance one frame.  The equilibrium is intentionally FLAT (zero) so that
-     * the drawing layer's baseline slope is the only tilt applied — preventing
-     * the "double-slope" fight that made the water look wrong.
-     */
     fun step(dt: Float) {
         for (i in 0 until n) {
             val left = if (i > 0) h[i - 1] else h[0]
             val right = if (i < n - 1) h[i + 1] else h[n - 1]
-            // a = k*(L + R - 2h) - damp*v        (restores toward h=0)
             val accel = BG_K * (left + right - 2f * h[i]) - BG_DAMP * v[i]
             v[i] += accel
             h[i] += v[i]
         }
     }
 
-    /**
-     * Inject a velocity impulse at normalised position [pos] ∈ 0..1.
-     * Neighbours receive 55 % of the impulse so the disturbance spreads
-     * naturally rather than spiking at a single column.
-     */
     fun splash(pos: Float, force: Float) {
         val idx = (pos * (n - 1)).toInt().coerceIn(0, n - 1)
         v[idx] += force
@@ -74,13 +66,9 @@ private class BgWave(val n: Int = BG_N) {
 /**
  * Full-screen water-fill background driven by real spring-mass physics.
  *
- * Tilt handling — two-layer approach that avoids the double-slope bug:
- *  1. **Drawing baseline** uses [gyroTilt].x (spring-animated) to slope the
- *     water surface visually.  The formula `baseY(t) = centreY + slope*(t-0.5)`
- *     correctly puts MORE water on whichever side gravity pulls it toward.
- *  2. **Physics impulses** use [gyroTilt].rawX (fast) to detect sudden wrist
- *     flicks and inject a splash, making the surface ripple convincingly.
- *     The physics otherwise restores to FLAT — it never fights the drawing slope.
+ * Waves use smooth quadratic-bezier paths so the surface looks organic rather
+ * than polygonal.  An ambient sine oscillation keeps the water alive even when
+ * the device is perfectly still.
  */
 @Composable
 fun WaveBackground(
@@ -88,7 +76,6 @@ fun WaveBackground(
     modifier: Modifier = Modifier,
     gyroTilt: GyroTilt = GyroTilt(),
 ) {
-    // ── Animated fill level (spring — adds feel organic on sudden +intake) ──
     val animFill by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
         animationSpec = spring(
@@ -98,7 +85,6 @@ fun WaveBackground(
         label = "bgFill",
     )
 
-    // ── Animated tilt for the drawing baseline — smooth glide, no jitter ───
     val animTilt by animateFloatAsState(
         targetValue = gyroTilt.x,
         animationSpec = spring(
@@ -108,13 +94,9 @@ fun WaveBackground(
         label = "bgTilt",
     )
 
-    // ── Physics state (plain arrays — zero GC pressure per frame) ──────────
     val wave = remember { BgWave(BG_N) }
-
-    // Single Long updated every frame; Canvas reads it to force a redraw.
     var tick by remember { mutableLongStateOf(0L) }
 
-    // ── Physics loop — display-rate via withFrameMillis ─────────────────────
     LaunchedEffect(Unit) {
         var lastMs = withFrameMillis { it }
         var prevRaw = gyroTilt.rawX
@@ -124,13 +106,9 @@ fun WaveBackground(
             val dt = ((nowMs - lastMs) / 1000f).coerceAtMost(BG_MAX_DT)
             lastMs = nowMs
 
-            // Detect rapid tilt change using the FAST (rawX) channel so the
-            // splash fires even before the spring animation catches up.
             val rawNow = gyroTilt.rawX
             val delta = rawNow - prevRaw
             if (abs(delta) > 0.25f) {
-                // When tilting RIGHT (more negative rawX), water rushes RIGHT →
-                // splash lands on the right side (pos ≈ 0.85) and vice-versa.
                 val pos = if (delta < 0f) 0.82f else 0.18f
                 val force = abs(delta) * 9f
                 wave.splash(pos, force)
@@ -142,19 +120,40 @@ fun WaveBackground(
         }
     }
 
-    // ── Draw ─────────────────────────────────────────────────────────────────
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
 
-        // Water-surface centre Y (from top).  fill=0 → surface at bottom.
-        val centreY = h * (1f - animFill)
+        // ── Background: warm deep-blue gradient, not pitch black ───────────
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF0C2440),
+                    Color(0xFF071828),
+                ),
+                startY = 0f,
+                endY = h,
+            ),
+        )
 
-        // Edge-fade: amplitude → 0 when nearly empty or nearly full so the
-        // surface doesn't poke outside the screen edges.
+        // ── Soft ambient top glow (moonlight on water) ─────────────────────
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFF1E6FA8).copy(alpha = 0.22f),
+                    Color.Transparent,
+                ),
+                center = Offset(w * 0.5f, 0f),
+                radius = w * 0.85f,
+            ),
+            radius = w * 0.85f,
+            center = Offset(w * 0.5f, 0f),
+        )
+
+        val centreY = h * (1f - animFill)
         val edgeFade = (animFill * (1f - animFill) * 5.5f).coerceIn(0f, 1f)
 
-        // ── Back wave (slower, lighter) ─────────────────────────────────────
+        // ── Back wave (deeper tone, slower ambient phase) ──────────────────
         drawBgWave(
             wave = wave,
             w = w, h = h,
@@ -163,11 +162,15 @@ fun WaveBackground(
             edgeFade = edgeFade,
             heightScale = 0.62f,
             phaseShift = BG_N / 3,
-            color = Color(0xFF0EA5E9).copy(alpha = 0.13f),
+            color = Color(0xFF1178B8).copy(alpha = 0.24f),
+            ambientFreqHz = 0.18f,
+            ambientAmpPx = 5.5f,
+            ambientSpatialCycles = 2.8f,
+            ambientPhaseOffset = 0f,
             tick = tick,
         )
 
-        // ── Front wave (faster, stronger) ───────────────────────────────────
+        // ── Front wave (brighter, full physics) ────────────────────────────
         drawBgWave(
             wave = wave,
             w = w, h = h,
@@ -176,11 +179,15 @@ fun WaveBackground(
             edgeFade = edgeFade,
             heightScale = 1.0f,
             phaseShift = 0,
-            color = Color(0xFF38BDF8).copy(alpha = 0.10f),
+            color = Color(0xFF3EB8F0).copy(alpha = 0.20f),
+            ambientFreqHz = 0.25f,
+            ambientAmpPx = 4f,
+            ambientSpatialCycles = 3.5f,
+            ambientPhaseOffset = 1.2f,
             tick = tick,
         )
 
-        // ── Shimmer layer (very faint, different phase) ──────────────────────
+        // ── Shimmer layer (lightest, different phase) ──────────────────────
         if (animFill > 0.03f) {
             drawBgWave(
                 wave = wave,
@@ -190,7 +197,11 @@ fun WaveBackground(
                 edgeFade = edgeFade,
                 heightScale = 0.38f,
                 phaseShift = BG_N * 2 / 3,
-                color = Color(0xFF7DD3FC).copy(alpha = 0.055f),
+                color = Color(0xFF90D9FB).copy(alpha = 0.10f),
+                ambientFreqHz = 0.32f,
+                ambientAmpPx = 2.5f,
+                ambientSpatialCycles = 5f,
+                ambientPhaseOffset = 2.5f,
                 tick = tick,
             )
         }
@@ -211,20 +222,18 @@ private fun DrawScope.drawBgWave(
     heightScale: Float,
     phaseShift: Int,
     color: Color,
-    tick: Long,    // read so Compose redraws every frame
+    ambientFreqHz: Float,        // temporal frequency (Hz) — how fast the wave rolls
+    ambientAmpPx: Float,         // peak amplitude of idle oscillation in pixels
+    ambientSpatialCycles: Float, // spatial cycles across full width
+    ambientPhaseOffset: Float,   // per-layer phase offset (radians) for variety
+    tick: Long,                  // read here so Compose redraws every frame
 ) {
     @Suppress("UNUSED_EXPRESSION") tick
 
     val n = wave.n
     if (edgeFade < 0.005f) return
 
-    // ── Slope (FIXED sign) ──────────────────────────────────────────────────
-    // Sign convention from GyroTilt: positive x = phone tilted LEFT
-    //   → water accumulates on the LEFT → left side surface is LOWER in y
-    //     (closer to bottom) which in canvas coords means HIGHER y value.
-    // Formula: baseY(t) = centreY + slope*(t - 0.5)
-    //   t=0 (left):  centreY - slope/2   when slope>0 (tilted left) → smaller y → surface HIGHER ✓
-    //   t=1 (right): centreY + slope/2                               → larger  y → surface LOWER  ✓
+    // ── Tilt slope ─────────────────────────────────────────────────────────
     val maxTilt = 35f
     val clamped = tiltDeg.coerceIn(-maxTilt, maxTilt)
     val halfW = w / 2f
@@ -234,18 +243,33 @@ private fun DrawScope.drawBgWave(
 
     fun baseY(t: Float) = centreY + s * (t - 0.5f)
 
-    // ── Build wave path ─────────────────────────────────────────────────────
-    val path = Path()
     val step = w / (n - 1)
 
-    for (i in 0 until n) {
-        val t = i.toFloat() / (n - 1)
-        val px = i * step
-        val src = ((i + phaseShift) % n + n) % n
-        val wy = baseY(t) + wave.h[src] * heightScale * edgeFade
-        if (i == 0) path.moveTo(px, wy) else path.lineTo(px, wy)
-    }
+    // Ambient temporal phase — creates gentle rolling motion when device is still
+    val timeSec = tick.toFloat() / 1000f
+    val timePhase = timeSec * ambientFreqHz * 2f * PI.toFloat() + ambientPhaseOffset
 
+    // ── Compute y values per column (physics + ambient) ────────────────────
+    val yCoords = FloatArray(n) { i ->
+        val t = i.toFloat() / (n - 1)
+        val src = ((i + phaseShift) % n + n) % n
+        val physics = wave.h[src] * heightScale * edgeFade
+        val ambient = sin(t * ambientSpatialCycles * PI.toFloat() + timePhase) * ambientAmpPx * edgeFade
+        baseY(t) + physics + ambient
+    }
+    val xCoords = FloatArray(n) { i -> i * step }
+
+    // ── Smooth wave path via quadratic bezier through midpoints ────────────
+    // Using control=P[i], endpoint=midpoint(P[i], P[i+1]) for every segment
+    // makes a C1-continuous curve that passes smoothly through all data points.
+    val path = Path()
+    path.moveTo(xCoords[0], yCoords[0])
+    for (i in 0 until n - 1) {
+        val midX = (xCoords[i] + xCoords[i + 1]) / 2f
+        val midY = (yCoords[i] + yCoords[i + 1]) / 2f
+        path.quadraticTo(xCoords[i], yCoords[i], midX, midY)
+    }
+    path.lineTo(xCoords[n - 1], yCoords[n - 1])
     path.lineTo(w, h)
     path.lineTo(0f, h)
     path.close()

@@ -77,6 +77,7 @@ import com.example.hydrotracker.ui.theme.IceBlue400
 import com.example.hydrotracker.ui.theme.IceBlue500
 import com.example.hydrotracker.ui.theme.Violet400
 import java.text.SimpleDateFormat
+import java.time.LocalTime
 import java.util.Date
 import java.util.Locale
 
@@ -157,14 +158,19 @@ fun DashboardScreen(
                         )
                     }
                 } else {
+                    val greeting = when (LocalTime.now().hour) {
+                        in 5..11 -> "Good morning"
+                        in 12..16 -> "Good afternoon"
+                        else -> "Good evening"
+                    }
                     Text(
-                        text = "HYDROTRACK",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            letterSpacing = 2.2.sp,
+                        text = greeting,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 14.sp,
+                            letterSpacing = 0.1.sp,
                         ),
-                        color = Color.White.copy(alpha = 0.22f),
-                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
 
@@ -211,7 +217,7 @@ fun DashboardScreen(
             Text(
                 text = motivationalMessage(progress),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.40f),
+                color = Color.White.copy(alpha = 0.62f),
                 fontWeight = FontWeight.Medium,
             )
 
@@ -263,8 +269,8 @@ fun DashboardScreen(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                Color.White.copy(alpha = 0.055f),
-                                Color.White.copy(alpha = 0.030f),
+                                Color.White.copy(alpha = 0.075f),
+                                Color.White.copy(alpha = 0.042f),
                             )
                         )
                     )
@@ -272,8 +278,8 @@ fun DashboardScreen(
                         width = 1.dp,
                         brush = Brush.verticalGradient(
                             listOf(
-                                Color.White.copy(alpha = 0.12f),
-                                Color.White.copy(alpha = 0.04f),
+                                Color.White.copy(alpha = 0.16f),
+                                Color.White.copy(alpha = 0.05f),
                             )
                         ),
                         shape = RoundedCornerShape(22.dp),
@@ -289,7 +295,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         StatColumn(
-                            label = "CONSUMED",
+                            label = "Consumed",
                             value = fmtMl(uiState.currentIntakeMl),
                             valueColor = if (uiState.currentIntakeMl >= uiState.dailyGoalMl)
                                 Crystal400 else IceBlue400,
@@ -300,15 +306,15 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .width(1.dp)
                                 .height(36.dp)
-                                .background(Color.White.copy(alpha = 0.08f))
+                                .background(Color.White.copy(alpha = 0.10f))
                         )
 
                         StatColumn(
-                            label = "REMAINING",
+                            label = "Remaining",
                             value = fmtMl(
                                 (uiState.dailyGoalMl - uiState.currentIntakeMl).coerceAtLeast(0)
                             ),
-                            valueColor = Color.White.copy(alpha = 0.70f),
+                            valueColor = Color.White.copy(alpha = 0.75f),
                             align = Alignment.End,
                         )
                     }
@@ -328,13 +334,13 @@ fun DashboardScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = "DAILY GOAL",
+                                text = "Daily Goal",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 9.sp,
-                                    letterSpacing = 1.1.sp,
+                                    fontSize = 10.sp,
+                                    letterSpacing = 0.3.sp,
                                 ),
-                                color = Color.White.copy(alpha = 0.28f),
-                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.42f),
+                                fontWeight = FontWeight.Medium,
                             )
                             Text(
                                 text = "${(progress * 100).toInt()}% · ${fmtMl(uiState.dailyGoalMl)}",
@@ -375,7 +381,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(30.dp))
 
             // ── Add water label + buttons ─────────────────────────────────────
-            SectionLabel("ADD WATER")
+            SectionLabel("Add water")
             Spacer(modifier = Modifier.height(14.dp))
 
             QuickAddButtons(
@@ -402,17 +408,17 @@ fun DashboardScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                 ) {
-                    SectionLabel("TODAY")
+                    SectionLabel("Today")
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(18.dp))
-                            .background(Color.White.copy(alpha = 0.035f))
+                            .background(Color.White.copy(alpha = 0.048f))
                             .border(
                                 1.dp,
-                                Color.White.copy(alpha = 0.07f),
+                                Color.White.copy(alpha = 0.10f),
                                 RoundedCornerShape(18.dp),
                             ),
                     ) {
@@ -451,7 +457,7 @@ fun DashboardScreen(
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontSize = 11.sp
                                         ),
-                                        color = Color.White.copy(alpha = 0.28f),
+                                        color = Color.White.copy(alpha = 0.40f),
                                     )
                                 }
                                 if (idx < (uiState.entries.take(5).size - 1)) {
@@ -720,11 +726,11 @@ private fun StatColumn(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 9.sp,
-                letterSpacing = 1.1.sp,
+                fontSize = 10.sp,
+                letterSpacing = 0.3.sp,
             ),
-            color = Color.White.copy(alpha = 0.28f),
-            fontWeight = FontWeight.Bold,
+            color = Color.White.copy(alpha = 0.45f),
+            fontWeight = FontWeight.Medium,
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -753,18 +759,18 @@ private fun SectionLabel(label: String) {
                 .height(1.dp)
                 .background(
                     Brush.horizontalGradient(
-                        listOf(Color.Transparent, Color.White.copy(alpha = 0.09f))
+                        listOf(Color.Transparent, Color.White.copy(alpha = 0.12f))
                     )
                 )
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 9.sp,
-                letterSpacing = 1.6.sp,
+                fontSize = 11.sp,
+                letterSpacing = 0.4.sp,
             ),
-            color = Color.White.copy(alpha = 0.25f),
-            fontWeight = FontWeight.Bold,
+            color = Color.White.copy(alpha = 0.38f),
+            fontWeight = FontWeight.Medium,
         )
         Box(
             modifier = Modifier
@@ -772,7 +778,7 @@ private fun SectionLabel(label: String) {
                 .height(1.dp)
                 .background(
                     Brush.horizontalGradient(
-                        listOf(Color.White.copy(alpha = 0.09f), Color.Transparent)
+                        listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)
                     )
                 )
         )

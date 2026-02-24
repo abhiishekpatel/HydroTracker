@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tail:*)",
+      "Bash(cd C:\\\\Users\\\\noopur\\\\AndroidStudioProjects\\\\HydroTracker:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}

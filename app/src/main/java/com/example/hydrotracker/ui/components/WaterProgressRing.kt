@@ -48,41 +48,34 @@ import kotlin.math.tan
 //  Physics constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-private const val ORB_N = 120      // surface sample columns — more = smoother curve
-private const val ORB_K = 0.030f   // spring tension between neighbours
-private const val ORB_DAMP = 0.020f   // velocity damping per tick
-private const val ORB_MAX_DT = 0.032f // timestep cap
+private const val ORB_N = 120       // surface sample columns — more = smoother
+private const val ORB_K = 0.026f    // spring tension — slightly softer, more fluid
+private const val ORB_DAMP = 0.022f // velocity damping per tick
+private const val ORB_MAX_DT = 0.032f
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Pure-spring wave (zero equilibrium — tilt slope lives ONLY in drawing)
+//  Pure-spring wave
 // ─────────────────────────────────────────────────────────────────────────────
 
 private class OrbWave(val n: Int = ORB_N) {
-    val h = FloatArray(n)   // height offsets (px); positive = surface moves DOWN in canvas
-    val v = FloatArray(n)   // velocities (px / s)
+    val h = FloatArray(n)
+    val v = FloatArray(n)
 
-    /** Advance one physics tick toward flat equilibrium (h = 0 everywhere). */
     fun step(dt: Float) {
         for (i in 0 until n) {
             val left = if (i > 0) h[i - 1] else h[0]
             val right = if (i < n - 1) h[i + 1] else h[n - 1]
-            // a = k*(L + R − 2h) − damp*v
             val accel = ORB_K * (left + right - 2f * h[i]) - ORB_DAMP * v[i]
             v[i] += accel
             h[i] += v[i]
         }
     }
 
-    /**
-     * Inject a velocity impulse centred at normalised position [pos] ∈ 0..1.
-     * Neighbours receive 60 % of the force so ripples spread naturally.
-     */
     fun splash(pos: Float, force: Float) {
         val idx = (pos * (n - 1)).toInt().coerceIn(0, n - 1)
         v[idx] += force
         if (idx > 0) v[idx - 1] += force * 0.60f
         if (idx < n - 1) v[idx + 1] += force * 0.60f
-        // second ring
         if (idx > 1) v[idx - 2] += force * 0.25f
         if (idx < n - 2) v[idx + 2] += force * 0.25f
     }
@@ -103,7 +96,6 @@ fun WaterProgressRing(
     val progress = (currentMl.toFloat() / goalMl.coerceAtLeast(1)).coerceIn(0f, 1f)
     val isGoalMet = currentMl >= goalMl
 
-    // Smoothly animated fill — LowBouncy so adding water feels satisfying
     val animFill by animateFloatAsState(
         targetValue = progress,
         animationSpec = spring(
@@ -113,7 +105,6 @@ fun WaterProgressRing(
         label = "orbFill",
     )
 
-    // Smooth tilt for the DRAWING baseline — glides without jitter
     val animTilt by animateFloatAsState(
         targetValue = gyroTilt.x,
         animationSpec = spring(
@@ -126,7 +117,6 @@ fun WaterProgressRing(
     val wave = remember { OrbWave(ORB_N) }
     var frameTick by remember { mutableLongStateOf(0L) }
 
-    // ── Physics loop (display-rate) ─────────────────────────────────────────
     LaunchedEffect(Unit) {
         var lastMs = withFrameMillis { it }
         var prevRaw = gyroTilt.rawX
@@ -136,15 +126,9 @@ fun WaterProgressRing(
             val dt = ((nowMs - lastMs) / 1000f).coerceAtMost(ORB_MAX_DT)
             lastMs = nowMs
 
-            // Splash driven by the FAST rawX channel — fires before the spring
-            // animation even starts to move, so the slosh feels instant.
             val rawNow = gyroTilt.rawX
             val delta = rawNow - prevRaw
             if (abs(delta) > 0.20f) {
-                // Sign convention: positive x = tilted LEFT → water goes LEFT
-                //   → splash lands on the LEFT side  (pos ≈ 0.15)
-                // Negative x = tilted RIGHT → water goes RIGHT
-                //   → splash lands on the RIGHT side (pos ≈ 0.85)
                 val pos = if (delta > 0f) 0.15f else 0.85f
                 val force = abs(delta) * 11f
                 wave.splash(pos, force)
@@ -165,9 +149,9 @@ fun WaterProgressRing(
             val cx = size.width / 2f
             val cy = size.height / 2f
 
-            // ── 1. Outer ambient glow (brightens with fill level) ─────────────
+            // ── 1. Outer ambient glow ─────────────────────────────────────────
             val glowColor = if (isGoalMet) Crystal400 else IceBlue400
-            val glowAlpha = 0.08f + animFill * 0.16f
+            val glowAlpha = 0.10f + animFill * 0.18f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(glowColor.copy(alpha = glowAlpha), Color.Transparent),
@@ -178,17 +162,17 @@ fun WaterProgressRing(
                 center = Offset(cx, cy),
             )
 
-            // ── 2. Everything inside the orb circle ───────────────────────────
+            // ── 2. Everything inside the orb ──────────────────────────────────
             val orbClip = Path().apply {
                 addOval(Rect(0f, 0f, size.width, size.height))
             }
 
             clipPath(orbClip) {
 
-                // ── 2a. Dark orb background ───────────────────────────────────
+                // ── 2a. Orb background — visible dark blue, not pitch black ───
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(Color(0xFF0C1628), Color(0xFF060D1A)),
+                        colors = listOf(Color(0xFF0F2444), Color(0xFF0A1830)),
                         center = Offset(cx, cy),
                         radius = r,
                     ),
@@ -196,48 +180,44 @@ fun WaterProgressRing(
                     center = Offset(cx, cy),
                 )
 
-                // ── 2b. Physics water fill ────────────────────────────────────
+                // ── 2b. Physics water fill ─────────────────────────────────────
                 if (animFill > 0.005f) {
 
-                    @Suppress("UNUSED_EXPRESSION") frameTick   // force redraw each frame
+                    @Suppress("UNUSED_EXPRESSION") frameTick
 
-                    // Water surface centre Y from top of orb
                     val baselineY = size.height * (1f - animFill)
 
-                    // ── Slope (FIXED sign) ─────────────────────────────────────
-                    // GyroTilt sign convention: positive x = phone tilted LEFT
-                    //   → water accumulates on the LEFT side
-                    //   → left surface is LOWER in canvas (larger Y) … wait —
-                    //     water depth on the left increases, so the surface rises
-                    //     on the LEFT, meaning surface Y is SMALLER on the left.
-                    //
-                    // Formula:  surfaceY(t) = baselineY + slope * (t − 0.5)
-                    //   t = 0 (left edge),  t = 1 (right edge)
-                    //   When tiltDeg > 0 (tilted LEFT), slope > 0:
-                    //     left  (t=0): baselineY − slope/2  → smaller Y → surface HIGHER ✓
-                    //     right (t=1): baselineY + slope/2  → larger  Y → surface LOWER  ✓
+                    // Tilt slope
                     val maxTilt = 35f
                     val clamped = animTilt.coerceIn(-maxTilt, maxTilt)
                     val rawSlope = tan((clamped * PI / 180.0).toFloat()) * (size.width / 2f)
                     val maxSlope = r * 0.62f
                     val slope = rawSlope.coerceIn(-maxSlope, maxSlope)
-
                     fun surfaceY(t: Float) = baselineY + slope * (t - 0.5f)
 
-                    // Edge-fade: amplitude → 0 when nearly empty or full
                     val edgeFade = (animFill * (1f - animFill) * 5f).coerceIn(0f, 1f)
-
                     val n = wave.n
+                    val timeSec = frameTick.toFloat() / 1000f
 
-                    // ── Back water layer (deeper, slower phase) ───────────────
-                    val backPath = Path()
-                    for (i in 0 until n) {
+                    // ── Back water layer ───────────────────────────────────────
+                    // Slower ambient phase, deeper colour — gives depth impression
+                    val backPhase = timeSec * 0.20f * 2f * PI.toFloat()
+                    val backXCoords = FloatArray(n) { i -> i.toFloat() * size.width / (n - 1) }
+                    val backYCoords = FloatArray(n) { i ->
                         val t = i.toFloat() / (n - 1)
-                        val px = t * size.width
                         val src = ((i + n / 3) % n)
-                        val wy = surfaceY(t) + wave.h[src] * 0.50f * edgeFade
-                        if (i == 0) backPath.moveTo(px, wy) else backPath.lineTo(px, wy)
+                        val ambient = sin(t * 2.8f * PI.toFloat() + backPhase) * 3f * edgeFade
+                        surfaceY(t) + wave.h[src] * 0.50f * edgeFade + ambient
                     }
+
+                    val backPath = Path()
+                    backPath.moveTo(backXCoords[0], backYCoords[0])
+                    for (i in 0 until n - 1) {
+                        val midX = (backXCoords[i] + backXCoords[i + 1]) / 2f
+                        val midY = (backYCoords[i] + backYCoords[i + 1]) / 2f
+                        backPath.quadraticTo(backXCoords[i], backYCoords[i], midX, midY)
+                    }
+                    backPath.lineTo(backXCoords[n - 1], backYCoords[n - 1])
                     backPath.lineTo(size.width, size.height)
                     backPath.lineTo(0f, size.height)
                     backPath.close()
@@ -246,23 +226,33 @@ fun WaterProgressRing(
                         path = backPath,
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF0284C7).copy(alpha = 0.50f),
-                                Color(0xFF075985).copy(alpha = 0.70f),
-                                Color(0xFF0C4A6E).copy(alpha = 0.88f),
+                                Color(0xFF1E8ED4).copy(alpha = 0.55f),
+                                Color(0xFF0E6FAA).copy(alpha = 0.72f),
+                                Color(0xFF0A5588).copy(alpha = 0.90f),
                             ),
                             startY = (baselineY - r * 0.08f).coerceAtLeast(0f),
                             endY = size.height,
                         ),
                     )
 
-                    // ── Front water layer (brighter, full physics heights) ─────
-                    val frontPath = Path()
-                    for (i in 0 until n) {
+                    // ── Front water layer ──────────────────────────────────────
+                    // Faster ambient phase, lighter colour — sits "on top" of water
+                    val frontPhase = timeSec * 0.28f * 2f * PI.toFloat() + 1.2f
+                    val frontXCoords = FloatArray(n) { i -> i.toFloat() * size.width / (n - 1) }
+                    val frontYCoords = FloatArray(n) { i ->
                         val t = i.toFloat() / (n - 1)
-                        val px = t * size.width
-                        val wy = surfaceY(t) + wave.h[i] * edgeFade
-                        if (i == 0) frontPath.moveTo(px, wy) else frontPath.lineTo(px, wy)
+                        val ambient = sin(t * 3.5f * PI.toFloat() + frontPhase) * 2.5f * edgeFade
+                        surfaceY(t) + wave.h[i] * edgeFade + ambient
                     }
+
+                    val frontPath = Path()
+                    frontPath.moveTo(frontXCoords[0], frontYCoords[0])
+                    for (i in 0 until n - 1) {
+                        val midX = (frontXCoords[i] + frontXCoords[i + 1]) / 2f
+                        val midY = (frontYCoords[i] + frontYCoords[i + 1]) / 2f
+                        frontPath.quadraticTo(frontXCoords[i], frontYCoords[i], midX, midY)
+                    }
+                    frontPath.lineTo(frontXCoords[n - 1], frontYCoords[n - 1])
                     frontPath.lineTo(size.width, size.height)
                     frontPath.lineTo(0f, size.height)
                     frontPath.close()
@@ -271,42 +261,70 @@ fun WaterProgressRing(
                         path = frontPath,
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF38BDF8).copy(alpha = 0.40f),
-                                Color(0xFF0EA5E9).copy(alpha = 0.58f),
-                                Color(0xFF0369A1).copy(alpha = 0.78f),
+                                Color(0xFF50C8F0).copy(alpha = 0.48f),
+                                Color(0xFF28A8E0).copy(alpha = 0.62f),
+                                Color(0xFF1080BC).copy(alpha = 0.80f),
                             ),
                             startY = (baselineY - r * 0.04f).coerceAtLeast(0f),
                             endY = size.height,
                         ),
                     )
 
-                    // ── Surface shimmer (third phase) ─────────────────────────
+                    // ── Surface shimmer ────────────────────────────────────────
+                    val shimPhase = timeSec * 0.35f * 2f * PI.toFloat() + 2.5f
                     val shimPath = Path()
-                    for (i in 0 until n) {
-                        val t = i.toFloat() / (n - 1)
-                        val px = t * size.width
+                    shimPath.moveTo(frontXCoords[0], frontYCoords[0])
+                    for (i in 0 until n - 1) {
                         val src = ((i + n * 2 / 3) % n)
-                        val wy = surfaceY(t) + wave.h[src] * 0.28f * edgeFade
-                        if (i == 0) shimPath.moveTo(px, wy) else shimPath.lineTo(px, wy)
+                        // Shimmer follows the front surface closely with slight offset
+                        val shimY = frontYCoords[i] +
+                                sin(i.toFloat() / n * 4f * PI.toFloat() + shimPhase) * 1.5f * edgeFade
+                        val nextSrc = ((i + 1 + n * 2 / 3) % n)
+                        val nextShimY = frontYCoords[i + 1] +
+                                sin((i + 1).toFloat() / n * 4f * PI.toFloat() + shimPhase) * 1.5f * edgeFade
+                        val midX = (frontXCoords[i] + frontXCoords[i + 1]) / 2f
+                        val midY = (shimY + nextShimY) / 2f
+                        if (i == 0) shimPath.moveTo(frontXCoords[0], shimY)
+                        shimPath.quadraticTo(frontXCoords[i], shimY, midX, midY)
+                        @Suppress("UNUSED_VARIABLE") src
+                        @Suppress("UNUSED_VARIABLE") nextSrc
                     }
+                    shimPath.lineTo(frontXCoords[n - 1], frontYCoords[n - 1])
                     shimPath.lineTo(size.width, size.height)
                     shimPath.lineTo(0f, size.height)
                     shimPath.close()
+                    drawPath(shimPath, Color(0xFF90D9FC).copy(alpha = 0.14f))
 
-                    drawPath(shimPath, Color(0xFF7DD3FC).copy(alpha = 0.14f))
+                    // ── Soft surface foam line ─────────────────────────────────
+                    // A thin highlight stroke at the waterline gives real "surface
+                    // tension" look — like light catching the water's edge.
+                    if (edgeFade > 0.08f) {
+                        val foamPath = Path()
+                        foamPath.moveTo(frontXCoords[0], frontYCoords[0])
+                        for (i in 0 until n - 1) {
+                            val midX = (frontXCoords[i] + frontXCoords[i + 1]) / 2f
+                            val midY = (frontYCoords[i] + frontYCoords[i + 1]) / 2f
+                            foamPath.quadraticTo(
+                                frontXCoords[i], frontYCoords[i], midX, midY,
+                            )
+                        }
+                        foamPath.lineTo(frontXCoords[n - 1], frontYCoords[n - 1])
+                        drawPath(
+                            path = foamPath,
+                            color = Color.White.copy(alpha = 0.22f * edgeFade),
+                            style = Stroke(width = 1.5.dp.toPx()),
+                        )
+                    }
 
-                    // ── Caustic light bands inside the water ──────────────────
-                    // Soft diagonal highlight bands that give a "light refracting
-                    // through water" feel without being garish.
-                    val causticAlpha = (animFill * 0.09f).coerceAtMost(0.09f)
-                    val band1X = cx * 0.55f
+                    // ── Caustic light bands inside the water ───────────────────
+                    val causticAlpha = (animFill * 0.10f).coerceAtMost(0.10f)
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
                                 Color.White.copy(alpha = causticAlpha),
                                 Color.Transparent,
                             ),
-                            center = Offset(band1X, cy + r * 0.15f),
+                            center = Offset(cx * 0.55f, cy + r * 0.15f),
                             radius = r * 0.45f,
                         ),
                         radius = r,
@@ -314,10 +332,10 @@ fun WaterProgressRing(
                     )
                 }
 
-                // ── 2c. Inner vignette — darkens the rim for depth ────────────
+                // ── 2c. Inner vignette — gentle rim darkening for depth ────────
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.42f)),
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f)),
                         center = Offset(cx, cy),
                         radius = r,
                     ),
@@ -325,11 +343,11 @@ fun WaterProgressRing(
                     center = Offset(cx, cy),
                 )
 
-                // ── 2d. Top specular highlight (glass lens look) ──────────────
+                // ── 2d. Top specular highlight (glass lens) ────────────────────
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.06f),
+                            Color.White.copy(alpha = 0.07f),
                             Color.Transparent,
                         ),
                         center = Offset(cx * 0.70f, cy * 0.52f),
@@ -344,22 +362,20 @@ fun WaterProgressRing(
             val strokeW = 2.dp.toPx()
             val halfStroke = strokeW / 2f
 
-            // Dim track ring
             drawCircle(
-                color = Color.White.copy(alpha = 0.07f),
+                color = Color.White.copy(alpha = 0.09f),
                 radius = r - halfStroke,
                 center = Offset(cx, cy),
                 style = Stroke(width = strokeW),
             )
 
-            // Glowing progress arc
             if (animFill > 0.005f) {
                 val arc1 = if (isGoalMet) Crystal400 else IceBlue400
                 val arc2 = if (isGoalMet) Crystal500 else Violet400
 
                 // Soft glow halo behind the arc
                 drawArc(
-                    color = arc1.copy(alpha = 0.18f),
+                    color = arc1.copy(alpha = 0.20f),
                     startAngle = -90f,
                     sweepAngle = animFill * 360f,
                     useCenter = false,
@@ -394,7 +410,11 @@ fun WaterProgressRing(
                 val dotX = cx + (r - halfStroke) * cos(leadRad)
                 val dotY = cy + (r - halfStroke) * sin(leadRad)
                 drawCircle(color = arc1, radius = 4.dp.toPx(), center = Offset(dotX, dotY))
-                drawCircle(color = Color.White.copy(alpha = 0.95f), radius = 1.8.dp.toPx(), center = Offset(dotX, dotY))
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.95f),
+                    radius = 1.8.dp.toPx(),
+                    center = Offset(dotX, dotY),
+                )
             }
         }
 
@@ -411,7 +431,7 @@ fun WaterProgressRing(
                 color = when {
                     isGoalMet -> Crystal400
                     currentMl > 0 -> Color.White.copy(alpha = 0.93f)
-                    else -> Color.White.copy(alpha = 0.25f)
+                    else -> Color.White.copy(alpha = 0.30f)
                 },
             )
 
@@ -423,7 +443,7 @@ fun WaterProgressRing(
                     fontSize = 12.sp,
                     letterSpacing = 0.3.sp,
                 ),
-                color = Color.White.copy(alpha = 0.35f),
+                color = Color.White.copy(alpha = 0.42f),
                 fontWeight = FontWeight.Medium,
             )
 
@@ -432,7 +452,7 @@ fun WaterProgressRing(
             val pctColor = when {
                 isGoalMet -> Crystal400
                 progress > 0.5f -> IceBlue400
-                else -> Color.White.copy(alpha = 0.45f)
+                else -> Color.White.copy(alpha = 0.50f)
             }
             Text(
                 text = "${(progress * 100).toInt()}%",
