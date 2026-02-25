@@ -52,7 +52,7 @@ class SettingsDataStore(private val context: Context) {
     }
 
     val darkMode: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[DARK_MODE] ?: "light"
+        prefs[DARK_MODE] ?: "system"
     }
 
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
