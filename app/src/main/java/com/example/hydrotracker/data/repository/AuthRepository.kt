@@ -6,6 +6,8 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 
 class AuthRepository {
 
+    fun getSessionStatus() = supabaseClient.auth.sessionStatus
+
     suspend fun login(email: String, password: String): Result<Unit> {
         return runCatching {
             supabaseClient.auth.signInWith(Email) {
@@ -30,9 +32,5 @@ class AuthRepository {
 
     fun currentUserId(): String? {
         return supabaseClient.auth.currentUserOrNull()?.id
-    }
-
-    fun isLoggedIn(): Boolean {
-        return supabaseClient.auth.currentSessionOrNull() != null
     }
 }

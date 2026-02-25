@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import com.example.hydrotracker.data.local.HydroDatabase
 import com.example.hydrotracker.data.local.SettingsDataStore
+import com.example.hydrotracker.data.remote.initSupabaseClient
 import com.example.hydrotracker.data.repository.AuthRepository
 import com.example.hydrotracker.data.repository.HydrationSyncRepository
 import com.example.hydrotracker.data.repository.ProfileRepository
@@ -29,6 +30,7 @@ class HydroTrackApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        initSupabaseClient(this)
 
         val database = HydroDatabase.getDatabase(this)
         settingsDataStore = SettingsDataStore(this)

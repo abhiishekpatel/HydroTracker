@@ -19,8 +19,6 @@ class SyncWorker(
         val app = applicationContext as HydroTrackApp
         val authRepository = app.authRepository
 
-        if (!authRepository.isLoggedIn()) return Result.success()
-
         val userId = authRepository.currentUserId() ?: return Result.success()
 
         return runCatching {

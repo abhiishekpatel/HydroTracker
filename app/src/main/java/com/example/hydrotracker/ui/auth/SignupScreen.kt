@@ -13,9 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hydrotracker.ui.theme.HydroBlue
@@ -52,6 +56,58 @@ fun SignupScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf("") }
     val authState by authViewModel.authState.collectAsState()
+    val emailConfirmationSent by authViewModel.emailConfirmationSent.collectAsState()
+
+    // Show email confirmation screen when Supabase requires email verification
+    if (emailConfirmationSent) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(LightBackground)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF22C55E),
+                modifier = Modifier.size(72.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Check your email",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = HydroTextPrimary
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "A confirmation link has been sent to $email. Click the link in your email to activate your account, then log in.",
+                    fontSize = 14.sp,
+                    color = Color(0xFF166534),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = {
+                    authViewModel.dismissEmailConfirmation()
+                    onNavigateToLogin()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = HydroBlue),
+                modifier = Modifier.fillMaxWidth().height(50.dp)
+            ) {
+                Text("Go to Login", fontWeight = FontWeight.SemiBold)
+            }
+        }
+        return
+    }
 
     Column(
         modifier = Modifier
