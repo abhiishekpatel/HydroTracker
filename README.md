@@ -30,8 +30,8 @@ HydroTrack is a native Android water intake tracking application built with Kotl
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd hydrotrack
+git clone https://github.com/abhiishekpatel/HydroTracker.git
+cd HydroTracker
 ```
 
 2. Open the project in Android Studio:
