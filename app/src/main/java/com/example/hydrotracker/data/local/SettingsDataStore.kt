@@ -25,6 +25,9 @@ class SettingsDataStore(private val context: Context) {
         val DARK_MODE = stringPreferencesKey("dark_mode") // "light", "dark", "system"
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val QUICK_ADD_AMOUNTS = stringPreferencesKey("quick_add_amounts") // comma-separated
+        val USER_ID = stringPreferencesKey("user_id")
+        val USER_NAME = stringPreferencesKey("user_name")
+        val USER_EMAIL = stringPreferencesKey("user_email")
     }
 
     val dailyGoalMl: Flow<Int> = context.dataStore.data.map { prefs ->
@@ -64,6 +67,10 @@ class SettingsDataStore(private val context: Context) {
         raw.split(",").mapNotNull { it.trim().toIntOrNull() }
     }
 
+    val userId: Flow<String?> = context.dataStore.data.map { prefs -> prefs[USER_ID] }
+    val userName: Flow<String> = context.dataStore.data.map { prefs -> prefs[USER_NAME] ?: "" }
+    val userEmail: Flow<String> = context.dataStore.data.map { prefs -> prefs[USER_EMAIL] ?: "" }
+
     suspend fun setDailyGoalMl(value: Int) {
         context.dataStore.edit { it[DAILY_GOAL_ML] = value }
     }
@@ -98,5 +105,25 @@ class SettingsDataStore(private val context: Context) {
 
     suspend fun setQuickAddAmounts(amounts: List<Int>) {
         context.dataStore.edit { it[QUICK_ADD_AMOUNTS] = amounts.joinToString(",") }
+    }
+
+    suspend fun setUserId(value: String) {
+        context.dataStore.edit { it[USER_ID] = value }
+    }
+
+    suspend fun setUserName(value: String) {
+        context.dataStore.edit { it[USER_NAME] = value }
+    }
+
+    suspend fun setUserEmail(value: String) {
+        context.dataStore.edit { it[USER_EMAIL] = value }
+    }
+
+    suspend fun clearUserInfo() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(USER_ID)
+            prefs.remove(USER_NAME)
+            prefs.remove(USER_EMAIL)
+        }
     }
 }

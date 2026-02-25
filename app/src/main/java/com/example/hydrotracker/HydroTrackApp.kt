@@ -5,6 +5,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import com.example.hydrotracker.data.local.HydroDatabase
 import com.example.hydrotracker.data.local.SettingsDataStore
+import com.example.hydrotracker.data.repository.AuthRepository
+import com.example.hydrotracker.data.repository.HydrationSyncRepository
+import com.example.hydrotracker.data.repository.ProfileRepository
 import com.example.hydrotracker.data.repository.WaterRepository
 
 class HydroTrackApp : Application() {
@@ -15,12 +18,24 @@ class HydroTrackApp : Application() {
     lateinit var settingsDataStore: SettingsDataStore
         private set
 
+    lateinit var authRepository: AuthRepository
+        private set
+
+    lateinit var profileRepository: ProfileRepository
+        private set
+
+    lateinit var hydrationSyncRepository: HydrationSyncRepository
+        private set
+
     override fun onCreate() {
         super.onCreate()
 
         val database = HydroDatabase.getDatabase(this)
         settingsDataStore = SettingsDataStore(this)
         repository = WaterRepository(database.waterEntryDao(), settingsDataStore)
+        authRepository = AuthRepository()
+        profileRepository = ProfileRepository()
+        hydrationSyncRepository = HydrationSyncRepository(database.waterEntryDao())
 
         createNotificationChannels()
     }

@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Equalizer
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.Equalizer
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.Icon
@@ -42,7 +44,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.hydrotracker.HydroTrackApp
 import com.example.hydrotracker.ui.HapticType
+import com.example.hydrotracker.ui.auth.AuthViewModel
 import com.example.hydrotracker.ui.performHaptic
+import com.example.hydrotracker.ui.profile.ProfileScreen
 import com.example.hydrotracker.ui.screens.dashboard.DashboardScreen
 import com.example.hydrotracker.ui.screens.history.HistoryScreen
 import com.example.hydrotracker.ui.screens.settings.SettingsScreen
@@ -59,16 +63,18 @@ sealed class Screen(
     data object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.WaterDrop, Icons.Outlined.WaterDrop)
     data object History : Screen("history", "History", Icons.Filled.Equalizer, Icons.Outlined.Equalizer)
     data object Settings : Screen("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
+    data object Profile : Screen("profile", "Profile", Icons.Filled.Person, Icons.Outlined.Person)
 }
 
 val bottomNavScreens = listOf(
     Screen.Dashboard,
     Screen.History,
-    Screen.Settings
+    Screen.Settings,
+    Screen.Profile
 )
 
 @Composable
-fun HydroNavigation() {
+fun HydroNavigation(authViewModel: AuthViewModel) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -184,6 +190,12 @@ fun HydroNavigation() {
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(bottomPadding = innerPadding.calculateBottomPadding())
+            }
+            composable(Screen.Profile.route) {
+                ProfileScreen(
+                    authViewModel = authViewModel,
+                    bottomPadding = innerPadding.calculateBottomPadding()
+                )
             }
         }
     }

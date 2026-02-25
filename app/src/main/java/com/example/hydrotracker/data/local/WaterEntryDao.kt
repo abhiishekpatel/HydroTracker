@@ -3,6 +3,7 @@ package com.example.hydrotracker.data.local
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
@@ -11,6 +12,9 @@ interface WaterEntryDao {
 
     @Insert
     suspend fun insert(entry: WaterEntry): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(entries: List<WaterEntry>): List<Long>
 
     @Delete
     suspend fun delete(entry: WaterEntry)
@@ -57,6 +61,18 @@ interface WaterEntryDao {
         ORDER BY date DESC
     """)
     fun getDatesGoalMet(goalMl: Int): Flow<List<DailyTotal>>
+
+    @Query("SELECT * FROM water_entries WHERE isSynced = 0")
+    suspend fun getUnsyncedEntries(): List<WaterEntry>
+
+    @Query("UPDATE water_entries SET syncId = :syncId, isSynced = 1 WHERE id = :localId")
+    suspend fun markSynced(localId: Long, syncId: String)
+
+    @Query("SELECT syncId FROM water_entries WHERE syncId IS NOT NULL")
+    suspend fun getAllSyncIds(): List<String>
+
+    @Query("DELETE FROM water_entries")
+    suspend fun deleteAll()
 }
 
 data class DailyTotal(

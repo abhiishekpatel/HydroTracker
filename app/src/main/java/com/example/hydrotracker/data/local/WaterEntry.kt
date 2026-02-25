@@ -9,5 +9,7 @@ data class WaterEntry(
     val id: Long = 0,
     val amountMl: Int,
     val timestamp: Long = System.currentTimeMillis(),
-    val date: String // YYYY-MM-DD
+    val date: String, // YYYY-MM-DD
+    val syncId: String? = null,
+    val isSynced: Boolean = false
 )

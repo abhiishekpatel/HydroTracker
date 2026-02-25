@@ -55,6 +55,10 @@ class WaterRepository(
         return dao.getDatesGoalMet(goalMl)
     }
 
+    suspend fun clearAllData() {
+        dao.deleteAll()
+    }
+
     fun calculateStreak(datesGoalMet: List<DailyTotal>): Int {
         if (datesGoalMet.isEmpty()) return 0
 
