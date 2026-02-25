@@ -50,14 +50,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hydrotracker.data.local.DailyTotal
 import com.example.hydrotracker.ui.theme.HydroBlue
 import com.example.hydrotracker.ui.theme.HydroBlueContainer
-import com.example.hydrotracker.ui.theme.HydroDivider
 import com.example.hydrotracker.ui.theme.HydroSuccess
 import com.example.hydrotracker.ui.theme.HydroSuccessContainer
-import com.example.hydrotracker.ui.theme.HydroTextPrimary
-import com.example.hydrotracker.ui.theme.HydroTextSecondary
 import com.example.hydrotracker.ui.theme.HydroWarning
-import com.example.hydrotracker.ui.theme.HydroWarningContainer
-import com.example.hydrotracker.ui.theme.LightBackground
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -86,7 +81,7 @@ fun HistoryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .statusBarsPadding()
             .padding(bottom = bottomPadding + 24.dp)
@@ -96,7 +91,7 @@ fun HistoryScreen(
             text = "History & Insights",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = HydroTextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
@@ -129,14 +124,14 @@ fun HistoryScreen(
                 text = weeklyMotivation,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = HydroTextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Keep up the hydration habit.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = HydroTextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }
@@ -149,15 +144,15 @@ fun HistoryScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             shape = RoundedCornerShape(20.dp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 2.dp,
-            border = BorderStroke(1.dp, HydroDivider)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(
                     text = "WEEKLY HYDRATION",
                     style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
-                    color = HydroTextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -165,7 +160,7 @@ fun HistoryScreen(
                     text = String.format("%.1f L", weeklyTotal / 1000f),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = HydroTextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(18.dp))
                 WeeklyBarChart(
@@ -188,9 +183,9 @@ fun HistoryScreen(
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(16.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 1.dp,
-                border = BorderStroke(1.dp, HydroDivider)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(
@@ -217,14 +212,14 @@ fun HistoryScreen(
                     Text(
                         text = "Avg Daily Intake",
                         style = MaterialTheme.typography.labelSmall,
-                        color = HydroTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = String.format("%.1f L", avgDailyL),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = HydroTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -233,9 +228,9 @@ fun HistoryScreen(
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(16.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 1.dp,
-                border = BorderStroke(1.dp, HydroDivider)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(
@@ -262,14 +257,14 @@ fun HistoryScreen(
                     Text(
                         text = "Goal Completion",
                         style = MaterialTheme.typography.labelSmall,
-                        color = HydroTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "$goalCompletionPct%",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = HydroTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -289,7 +284,7 @@ fun HistoryScreen(
                 text = "Recent Logs",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = HydroTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "View All",
@@ -305,7 +300,6 @@ fun HistoryScreen(
         val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
         val dataMap = uiState.weeklyData.associateBy { it.date }
 
-        // Today
         RecentLogCard(
             date = today,
             totalMl = dataMap[today.format(dateFormatter)]?.totalMl ?: 0,
@@ -315,24 +309,20 @@ fun HistoryScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Yesterday
         val yesterday = today.minusDays(1)
-        val yesterdayTotal = dataMap[yesterday.format(dateFormatter)]?.totalMl ?: 0
         RecentLogCard(
             date = yesterday,
-            totalMl = yesterdayTotal,
+            totalMl = dataMap[yesterday.format(dateFormatter)]?.totalMl ?: 0,
             goalMl = uiState.dailyGoalMl,
             isToday = false
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Day before
         val dayBefore = today.minusDays(2)
-        val dayBeforeTotal = dataMap[dayBefore.format(dateFormatter)]?.totalMl ?: 0
         RecentLogCard(
             date = dayBefore,
-            totalMl = dayBeforeTotal,
+            totalMl = dataMap[dayBefore.format(dateFormatter)]?.totalMl ?: 0,
             goalMl = uiState.dailyGoalMl,
             isToday = false
         )
@@ -363,7 +353,6 @@ private fun RecentLogCard(
     } ${date.dayOfMonth}"
 
     if (isToday) {
-        // Blue card for today
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -445,15 +434,14 @@ private fun RecentLogCard(
             }
         }
     } else {
-        // White card for other days
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 1.dp,
-            border = BorderStroke(1.dp, HydroDivider)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Row(
                 modifier = Modifier
@@ -467,13 +455,13 @@ private fun RecentLogCard(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(LightBackground),
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.History,
                             contentDescription = null,
-                            tint = HydroTextSecondary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -483,12 +471,12 @@ private fun RecentLogCard(
                             text = dateLabel,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = HydroTextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = dateSubtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = HydroTextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -497,7 +485,7 @@ private fun RecentLogCard(
                         text = String.format("%.1f L", totalMl / 1000f),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = HydroTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     if (totalMl > 0) {
@@ -536,7 +524,7 @@ private fun RecentLogCard(
                         Text(
                             text = "No data",
                             style = MaterialTheme.typography.labelSmall,
-                            color = HydroTextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -558,6 +546,7 @@ private fun WeeklyBarChart(
     val days = (0..6).map { today.minusDays((6 - it).toLong()) }
     val dataMap = data.associateBy { it.date }
     val maxValue = (data.maxOfOrNull { it.totalMl } ?: goalMl).coerceAtLeast(goalMl)
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
 
     Row(
         modifier = Modifier
@@ -583,20 +572,17 @@ private fun WeeklyBarChart(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                // Background track bar
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.BottomCenter
                 ) {
-                    // Empty track
                     Box(
                         modifier = Modifier
                             .width(28.dp)
                             .fillMaxSize()
                             .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                            .background(Color(0xFFEFF4FA))
+                            .background(trackColor)
                     )
-                    // Filled portion
                     if (total > 0) {
                         Box(
                             modifier = Modifier
@@ -617,7 +603,7 @@ private fun WeeklyBarChart(
                     text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(3),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isToday) HydroBlue else HydroTextSecondary,
+                    color = if (isToday) HydroBlue else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
             }

@@ -73,12 +73,7 @@ import com.example.hydrotracker.ui.components.ConfettiEffect
 import com.example.hydrotracker.ui.performHaptic
 import com.example.hydrotracker.ui.theme.HydroBlue
 import com.example.hydrotracker.ui.theme.HydroBlueContainer
-import com.example.hydrotracker.ui.theme.HydroDivider
 import com.example.hydrotracker.ui.theme.HydroSuccess
-import com.example.hydrotracker.ui.theme.HydroTextPrimary
-import com.example.hydrotracker.ui.theme.HydroTextSecondary
-import com.example.hydrotracker.ui.theme.HydroWarning
-import com.example.hydrotracker.ui.theme.LightBackground
 import java.text.SimpleDateFormat
 import java.time.LocalTime
 import java.util.Date
@@ -106,7 +101,7 @@ fun DashboardScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -129,13 +124,13 @@ fun DashboardScreen(
                     Text(
                         text = "Welcome back,",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = HydroTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = timeGreeting(),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = HydroTextPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 IconButton(
@@ -144,7 +139,7 @@ fun DashboardScreen(
                     Icon(
                         Icons.Default.Notifications,
                         contentDescription = "Notifications",
-                        tint = HydroTextPrimary,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -184,7 +179,7 @@ fun DashboardScreen(
                     text = "Quick Add",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = HydroTextPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
@@ -246,7 +241,7 @@ fun DashboardScreen(
                             text = "Daily Log",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = HydroTextPrimary
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         TextButton(onClick = {
                             performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
@@ -281,7 +276,7 @@ fun DashboardScreen(
                             Text(
                                 "Undo last entry",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = HydroTextSecondary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     } else if (uiState.entries.isNotEmpty()) {
@@ -296,7 +291,7 @@ fun DashboardScreen(
                             Text(
                                 "Undo last entry",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = HydroTextSecondary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -316,20 +311,20 @@ fun DashboardScreen(
             AlertDialog(
                 onDismissRequest = { showResetDialog = false },
                 shape = RoundedCornerShape(20.dp),
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 title = {
                     Text(
                         "Reset today?",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = HydroTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 },
                 text = {
                     Text(
                         "All water entries for today will be cleared.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = HydroTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 confirmButton = {
@@ -349,7 +344,7 @@ fun DashboardScreen(
                         performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
                         showResetDialog = false
                     }) {
-                        Text("Cancel", color = HydroTextSecondary)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             )
@@ -371,13 +366,13 @@ fun DashboardScreen(
                     sliderValue = 250f
                 },
                 shape = RoundedCornerShape(20.dp),
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 title = {
                     Text(
                         "Custom Amount",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = HydroTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 },
                 text = {
@@ -398,7 +393,7 @@ fun DashboardScreen(
                         Text(
                             text = "drag to set amount",
                             style = MaterialTheme.typography.bodySmall,
-                            color = HydroTextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(18.dp))
 
@@ -429,7 +424,7 @@ fun DashboardScreen(
                             colors = SliderDefaults.colors(
                                 thumbColor = HydroBlue,
                                 activeTrackColor = HydroBlue,
-                                inactiveTrackColor = HydroDivider,
+                                inactiveTrackColor = MaterialTheme.colorScheme.outline,
                                 activeTickColor = Color.Transparent,
                                 inactiveTickColor = Color.Transparent
                             ),
@@ -443,12 +438,12 @@ fun DashboardScreen(
                             Text(
                                 fmtMl(minMl),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = HydroTextSecondary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 fmtMl(maxMl),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = HydroTextSecondary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -475,7 +470,7 @@ fun DashboardScreen(
                         showCustomDialog = false
                         sliderValue = 250f
                     }) {
-                        Text("Cancel", color = HydroTextSecondary)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             )
@@ -501,6 +496,7 @@ private fun HydroCircularProgress(
         label = "arcProgress"
     )
     val arcColor = if (goalMet) HydroSuccess else HydroBlue
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
 
     Box(
         modifier = modifier.size(240.dp),
@@ -515,9 +511,9 @@ private fun HydroCircularProgress(
             )
             val arcSize = Size(diameter, diameter)
 
-            // Gray track
+            // Track
             drawArc(
-                color = Color(0xFFE2E8F0),
+                color = trackColor,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -525,7 +521,7 @@ private fun HydroCircularProgress(
                 size = arcSize,
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
-            // Blue/green progress arc
+            // Progress arc
             if (animProgress > 0.005f) {
                 drawArc(
                     color = arcColor,
@@ -555,13 +551,13 @@ private fun HydroCircularProgress(
                     text = "$currentMl",
                     fontSize = 40.sp,
                     fontWeight = FontWeight.Bold,
-                    color = HydroTextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     letterSpacing = (-1).sp
                 )
                 Text(
                     text = "ml",
                     fontSize = 14.sp,
-                    color = HydroTextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 7.dp, start = 3.dp)
                 )
@@ -569,7 +565,7 @@ private fun HydroCircularProgress(
             Text(
                 text = "of ${goalMl}ml goal",
                 fontSize = 13.sp,
-                color = HydroTextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -586,16 +582,16 @@ private fun QuickAddCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = if (isHighlighted) HydroBlue else Color.White
-    val contentColor = if (isHighlighted) Color.White else HydroTextPrimary
-    val iconTint = if (isHighlighted) Color.White else HydroTextSecondary
+    val bgColor = if (isHighlighted) HydroBlue else MaterialTheme.colorScheme.surface
+    val contentColor = if (isHighlighted) Color.White else MaterialTheme.colorScheme.onSurface
+    val iconTint = if (isHighlighted) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
 
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         color = bgColor,
         shadowElevation = if (isHighlighted) 4.dp else 1.dp,
-        border = if (!isHighlighted) BorderStroke(1.dp, HydroDivider) else null,
+        border = if (!isHighlighted) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
         onClick = onClick
     ) {
         Column(
@@ -630,9 +626,9 @@ private fun CustomAddCard(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 1.dp,
-        border = BorderStroke(1.dp, HydroDivider),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         onClick = onClick
     ) {
         Column(
@@ -645,7 +641,7 @@ private fun CustomAddCard(
             Icon(
                 imageVector = Icons.Filled.Add,
                 contentDescription = null,
-                tint = HydroTextSecondary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.height(6.dp))
@@ -653,7 +649,7 @@ private fun CustomAddCard(
                 text = "Custom",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = HydroTextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -668,9 +664,9 @@ private fun LogEntryCard(entry: WaterEntry) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 1.dp,
-        border = BorderStroke(1.dp, HydroDivider)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier
@@ -701,12 +697,12 @@ private fun LogEntryCard(entry: WaterEntry) {
                     text = drinkName(entry.amountMl),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = HydroTextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = drinkLabel(entry.amountMl),
                     style = MaterialTheme.typography.bodySmall,
-                    color = HydroTextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -720,7 +716,7 @@ private fun LogEntryCard(entry: WaterEntry) {
                 Text(
                     text = fmtTime(entry.timestamp),
                     style = MaterialTheme.typography.bodySmall,
-                    color = HydroTextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

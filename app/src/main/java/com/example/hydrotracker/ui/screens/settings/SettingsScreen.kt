@@ -62,11 +62,7 @@ import com.example.hydrotracker.ui.HapticType
 import com.example.hydrotracker.ui.performHaptic
 import com.example.hydrotracker.ui.theme.HydroBlue
 import com.example.hydrotracker.ui.theme.HydroBlueContainer
-import com.example.hydrotracker.ui.theme.HydroDivider
 import com.example.hydrotracker.ui.theme.HydroSuccess
-import com.example.hydrotracker.ui.theme.HydroTextPrimary
-import com.example.hydrotracker.ui.theme.HydroTextSecondary
-import com.example.hydrotracker.ui.theme.LightBackground
 
 @Composable
 fun SettingsScreen(
@@ -76,17 +72,14 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // ── Local UI state ────────────────────────────────────────────────────────
     var selectedTone by remember { mutableStateOf("encouraging") }
 
-    // ── Derive dark-mode selection from ViewModel state ───────────────────────
-    // We read uiState.darkMode directly so the UI always reflects persisted state.
     val currentDarkMode = uiState.darkMode  // "light" | "dark" | "system"
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .statusBarsPadding()
             .padding(bottom = bottomPadding + 24.dp)
@@ -96,7 +89,7 @@ fun SettingsScreen(
             text = "Settings",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = HydroTextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
@@ -108,14 +101,14 @@ fun SettingsScreen(
             text = "Smart Notifications",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = HydroTextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "Let HydroTrack remind you to drink based on your daily activity.",
             style = MaterialTheme.typography.bodySmall,
-            color = HydroTextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -125,9 +118,9 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 1.dp,
-            border = BorderStroke(1.dp, HydroDivider)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Row(
                 modifier = Modifier
@@ -155,12 +148,12 @@ fun SettingsScreen(
                         text = "Enable Smart Reminders",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = HydroTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Based on weather & activity",
                         style = MaterialTheme.typography.bodySmall,
-                        color = HydroTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Switch(
@@ -184,7 +177,7 @@ fun SettingsScreen(
             text = "Schedule",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = HydroTextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -194,9 +187,9 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 1.dp,
-            border = BorderStroke(1.dp, HydroDivider)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Column {
                 ScheduleRow(
@@ -208,7 +201,7 @@ fun SettingsScreen(
                 )
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    color = HydroDivider
+                    color = MaterialTheme.colorScheme.outline
                 )
                 ScheduleRow(
                     icon = Icons.Filled.NightsStay,
@@ -219,11 +212,11 @@ fun SettingsScreen(
                 )
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    color = HydroDivider
+                    color = MaterialTheme.colorScheme.outline
                 )
                 ScheduleRow(
                     icon = Icons.Filled.Schedule,
-                    iconTint = HydroTextSecondary,
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     label = "Frequency",
                     value = "Every ${formatInterval(uiState.reminderIntervalMin)}",
                     showChevron = true,
@@ -239,7 +232,7 @@ fun SettingsScreen(
             text = "Hydration Tone",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = HydroTextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -288,9 +281,9 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 1.dp,
-            border = BorderStroke(1.dp, HydroDivider)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Row(
                 modifier = Modifier
@@ -302,13 +295,13 @@ fun SettingsScreen(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(LightBackground),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.VolumeUp,
                         contentDescription = null,
-                        tint = HydroTextSecondary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -317,7 +310,7 @@ fun SettingsScreen(
                     text = "Sound & Haptics",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = HydroTextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 Switch(
@@ -346,9 +339,9 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 1.dp,
-            border = BorderStroke(1.dp, HydroDivider)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Row(
                 modifier = Modifier
@@ -360,13 +353,13 @@ fun SettingsScreen(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(LightBackground),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Filled.DarkMode,
                         contentDescription = null,
-                        tint = HydroTextSecondary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -375,7 +368,7 @@ fun SettingsScreen(
                     text = "Appearance",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = HydroTextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -384,24 +377,20 @@ fun SettingsScreen(
                         "dark" to "Dark",
                         "system" to "Auto"
                     ).forEach { (value, label) ->
-                        // ── FIX: compare against currentDarkMode (from uiState),
-                        //         not a stale local variable ──────────────────────
                         val isSelected = currentDarkMode == value
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) HydroBlue else LightBackground,
-                            border = if (isSelected) null else BorderStroke(1.dp, HydroDivider),
+                            color = if (isSelected) HydroBlue else MaterialTheme.colorScheme.surfaceVariant,
+                            border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                             onClick = {
                                 performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
-                                // Persist the new value via the ViewModel so the
-                                // state flow emits and the UI recomposes correctly.
                                 viewModel.setDarkMode(value)
                             }
                         ) {
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isSelected) Color.White else HydroTextSecondary,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                             )
@@ -417,7 +406,6 @@ fun SettingsScreen(
         Button(
             onClick = {
                 performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
-                // Persist all settings (tone, etc.) here if needed.
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -471,7 +459,7 @@ private fun ScheduleRow(
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(LightBackground),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -486,7 +474,7 @@ private fun ScheduleRow(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = HydroTextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
             Surface(
@@ -507,7 +495,7 @@ private fun ScheduleRow(
                 Icon(
                     Icons.AutoMirrored.Filled.NavigateNext,
                     contentDescription = null,
-                    tint = HydroTextSecondary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -530,11 +518,11 @@ private fun ToneOption(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isSelected) 2.dp else 1.dp,
         border = BorderStroke(
             width = if (isSelected) 2.dp else 1.dp,
-            color = if (isSelected) HydroBlue else HydroDivider
+            color = if (isSelected) HydroBlue else MaterialTheme.colorScheme.outline
         ),
         onClick = onClick
     ) {
@@ -549,14 +537,14 @@ private fun ToneOption(
                     .size(38.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isSelected) HydroBlueContainer else LightBackground
+                        if (isSelected) HydroBlueContainer else MaterialTheme.colorScheme.surfaceVariant
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = if (isSelected) HydroBlue else HydroTextSecondary,
+                    tint = if (isSelected) HydroBlue else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -566,12 +554,12 @@ private fun ToneOption(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = HydroTextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = HydroTextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp
                 )
             }
@@ -581,7 +569,7 @@ private fun ToneOption(
                 onClick = onClick,
                 colors = RadioButtonDefaults.colors(
                     selectedColor = HydroBlue,
-                    unselectedColor = HydroDivider
+                    unselectedColor = MaterialTheme.colorScheme.outline
                 )
             )
         }

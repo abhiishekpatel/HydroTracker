@@ -52,7 +52,6 @@ import com.example.hydrotracker.ui.screens.history.HistoryScreen
 import com.example.hydrotracker.ui.screens.settings.SettingsScreen
 import com.example.hydrotracker.ui.theme.HydroBlue
 import com.example.hydrotracker.ui.theme.HydroTextSecondary
-import com.example.hydrotracker.ui.theme.LightBackground
 
 sealed class Screen(
     val route: String,
@@ -84,14 +83,14 @@ fun HydroNavigation(authViewModel: AuthViewModel) {
         .collectAsStateWithLifecycle(initialValue = true)
 
     Scaffold(
-        containerColor = LightBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             Surface(
                 shadowElevation = 8.dp,
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 NavigationBar(
-                    containerColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 0.dp,
                     modifier = Modifier.height(64.dp)
                 ) {
