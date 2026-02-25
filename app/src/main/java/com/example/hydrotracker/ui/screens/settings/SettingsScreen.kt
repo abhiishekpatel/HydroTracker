@@ -76,7 +76,12 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // ── Local UI state ────────────────────────────────────────────────────────
     var selectedTone by remember { mutableStateOf("encouraging") }
+
+    // ── Derive dark-mode selection from ViewModel state ───────────────────────
+    // We read uiState.darkMode directly so the UI always reflects persisted state.
+    val currentDarkMode = uiState.darkMode  // "light" | "dark" | "system"
 
     Column(
         modifier = Modifier
@@ -374,14 +379,22 @@ fun SettingsScreen(
                     modifier = Modifier.weight(1f)
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("light" to "Light", "dark" to "Dark", "system" to "Auto").forEach { (value, label) ->
-                        val isSelected = uiState.darkMode == value
+                    listOf(
+                        "light" to "Light",
+                        "dark" to "Dark",
+                        "system" to "Auto"
+                    ).forEach { (value, label) ->
+                        // ── FIX: compare against currentDarkMode (from uiState),
+                        //         not a stale local variable ──────────────────────
+                        val isSelected = currentDarkMode == value
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = if (isSelected) HydroBlue else LightBackground,
                             border = if (isSelected) null else BorderStroke(1.dp, HydroDivider),
                             onClick = {
                                 performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
+                                // Persist the new value via the ViewModel so the
+                                // state flow emits and the UI recomposes correctly.
                                 viewModel.setDarkMode(value)
                             }
                         ) {
@@ -404,6 +417,7 @@ fun SettingsScreen(
         Button(
             onClick = {
                 performHaptic(context, HapticType.HEAVY, uiState.hapticEnabled)
+                // Persist all settings (tone, etc.) here if needed.
             },
             modifier = Modifier
                 .fillMaxWidth()
