@@ -16,7 +16,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,9 +37,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hydrotracker.ui.theme.HydroBlue
-import com.example.hydrotracker.ui.theme.HydroTextPrimary
-import com.example.hydrotracker.ui.theme.HydroTextSecondary
-import com.example.hydrotracker.ui.theme.LightBackground
 
 @Composable
 fun LoginScreen(
@@ -51,7 +50,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -67,12 +66,12 @@ fun LoginScreen(
             text = "HydroTrack",
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
-            color = HydroTextPrimary
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
             text = "Sign in to sync your hydration data",
             fontSize = 14.sp,
-            color = HydroTextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(36.dp))
 
@@ -84,6 +83,15 @@ fun LoginScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                focusedBorderColor = HydroBlue,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedLabelColor = HydroBlue,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                cursorColor = HydroBlue
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -98,6 +106,15 @@ fun LoginScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                focusedBorderColor = HydroBlue,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedLabelColor = HydroBlue,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                cursorColor = HydroBlue
             ),
             modifier = Modifier.fillMaxWidth()
         )

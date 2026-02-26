@@ -21,7 +21,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,9 +43,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hydrotracker.ui.theme.HydroBlue
-import com.example.hydrotracker.ui.theme.HydroTextPrimary
-import com.example.hydrotracker.ui.theme.HydroTextSecondary
-import com.example.hydrotracker.ui.theme.LightBackground
 
 @Composable
 fun SignupScreen(
@@ -58,12 +57,22 @@ fun SignupScreen(
     val authState by authViewModel.authState.collectAsState()
     val emailConfirmationSent by authViewModel.emailConfirmationSent.collectAsState()
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+        focusedBorderColor = HydroBlue,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+        focusedLabelColor = HydroBlue,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        cursorColor = HydroBlue
+    )
+
     // Show email confirmation screen when Supabase requires email verification
     if (emailConfirmationSent) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(LightBackground)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -79,7 +88,7 @@ fun SignupScreen(
                 text = "Check your email",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = HydroTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(12.dp))
             Card(
@@ -101,7 +110,9 @@ fun SignupScreen(
                     onNavigateToLogin()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = HydroBlue),
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             ) {
                 Text("Go to Login", fontWeight = FontWeight.SemiBold)
             }
@@ -112,7 +123,7 @@ fun SignupScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -129,12 +140,12 @@ fun SignupScreen(
             text = "Create Account",
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
-            color = HydroTextPrimary
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
             text = "Start tracking your hydration",
             fontSize = 14.sp,
-            color = HydroTextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(36.dp))
 
@@ -144,6 +155,7 @@ fun SignupScreen(
             label = { Text("Full Name") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            colors = fieldColors,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -157,6 +169,7 @@ fun SignupScreen(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
             ),
+            colors = fieldColors,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -171,6 +184,7 @@ fun SignupScreen(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Next
             ),
+            colors = fieldColors,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -185,6 +199,7 @@ fun SignupScreen(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
             ),
+            colors = fieldColors,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
