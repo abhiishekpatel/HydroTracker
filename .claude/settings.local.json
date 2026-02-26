@@ -3,7 +3,9 @@
     "allow": [
       "Bash(tail:*)",
       "Bash(jar tf:*)",
-      "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/jar.exe\" tf:*)"
+      "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/jar.exe\" tf:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)"
     ]
   }
 }
